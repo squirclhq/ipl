@@ -1,14 +1,21 @@
 [features]
 seeds = false
 skip-lint = false
+
 [programs.localnet]
 squircl_identity = "GQKH5unUGcEffQQCNNgQWhuijza6N62aQ1hTMu6VbAox"
+squircl_did = "AF4ChbnZ2DfGTHdNxHkmdrZkvRBbHYq1WcmnLiFRxwkZ"
+
+[programs.devnet]
+squircl_identity = "GQKH5unUGcEffQQCNNgQWhuijza6N62aQ1hTMu6VbAox"
+squircl_did = "AF4ChbnZ2DfGTHdNxHkmdrZkvRBbHYq1WcmnLiFRxwkZ"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
 cluster = "localnet"
+# cluster = "devnet"
 wallet = "/Users/anish/.config/solana/id.json"
 
 [scripts]
