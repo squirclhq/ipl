@@ -1,4 +1,14 @@
-use anchor_lang::prelude::*;
+use crate::utils::verify_secp256k1_ix;
+use anchor_lang::{
+    prelude::*,
+    solana_program::secp256k1_recover::SECP256K1_SIGNATURE_LENGTH,
+    solana_program::{
+        hash::hash,
+        instruction::Instruction,
+        secp256k1_program::ID as SECP256K1_ID,
+        sysvar::instructions::{load_instruction_at_checked, ID as IX_ID},
+    },
+};
 use constants::{
     DID_LENGTH, DISCRIMINATOR_LENGTH, ETH_ADDRESS_LENGTH, ETH_SIGNATURE_LENGTH, I64_LENGTH,
     SOL_ADDRESS_LENGTH, SOL_SIGNATURE_LENGTH, U8_LENGTH,
@@ -9,70 +19,155 @@ pub mod utils;
 
 declare_id!("AF4ChbnZ2DfGTHdNxHkmdrZkvRBbHYq1WcmnLiFRxwkZ");
 
+// #[derive(AnchorSerialize, AnchorDeserialize)]
+// pub struct Secp256k1RawSignature {
+//     pub signature: [u8; 64],
+//     pub recovery_id: u8,
+// }
+
 #[program]
 pub mod squircl_did {
-    use crate::utils::{verify_eth_signature, verify_sol_signature};
+
+    use crate::utils::verify_secp256k1_ix;
 
     use super::*;
 
-    pub fn create_did(ctx: Context<CreateDID>, params: CreateDIDParams) -> Result<()> {
-        let did = &mut ctx.accounts.did;
+    pub fn create_did(
+        ctx: Context<CreateDID>,
+        // did_str: String,
+        // eth_address: [u8; 20],
+        // msg: [u8; 64],
+        // sig: [u8; 64],
+        // recovery_id: u8,
+        eth_address_base58: String,
+        sig_base58: String,
+        msg_base58: String,
+        recovery_id: u8,
+    ) -> Result<()> {
+        // let did = &mut ctx.accounts.did;
 
-        let clock: Clock = Clock::get()?;
+        // let clock: Clock = Clock::get()?;
 
-        // verify the signature based on controller chain
+        let ix: Instruction = load_instruction_at_checked(0, &ctx.accounts.ix_sysvar)?;
 
-        match params.controller_chain {
-            Chain::Solana => {
-                require!(
-                    params.controller_signature.len() == SOL_SIGNATURE_LENGTH,
-                    IdentityErrorCode::InvalidSignatureLength
-                );
+        let eth_address_binding = bs58::decode(eth_address_base58).into_vec().unwrap();
+        let eth_address = eth_address_binding.as_slice();
+        let msg: Vec<u8> = bs58::decode(msg_base58).into_vec().unwrap();
+        let sig_binding = bs58::decode(sig_base58).into_vec().unwrap();
+        let sig = sig_binding.as_slice();
 
-                if !(verify_sol_signature(
-                    params.controller_address.clone(),
-                    params.controller_signature.clone(),
-                    params.controller_nonce,
-                )) {
-                    return Err(IdentityErrorCode::InvalidSignature.into());
-                }
+        msg!("eth_address: {:?}", eth_address);
+        msg!("sig: {:?}", sig);
+        msg!("msg: {:?}", msg);
+
+        match verify_secp256k1_ix(&ix, eth_address, &msg, sig, recovery_id) {
+            Ok(()) => {
+                msg!("signature verified");
             }
-            Chain::EVM => {
-                require!(
-                    params.controller_signature.len() == ETH_SIGNATURE_LENGTH,
-                    IdentityErrorCode::InvalidSignatureLength
-                );
-
-                match verify_eth_signature(
-                    params.controller_address.clone(),
-                    params.controller_signature.clone(),
-                    params.controller_nonce,
-                ) {
-                    Ok(verified) => {
-                        if !verified {
-                            return Err(IdentityErrorCode::InvalidSignature.into());
-                        }
-                    }
-                    Err(_) => {
-                        return Err(IdentityErrorCode::InvalidSignature.into());
-                    }
-                }
+            Err(_) => {
+                msg!("signature not verified root");
+                return Err(IdentityErrorCode::InvalidSignature.into());
             }
         }
 
-        did.set_inner(DID::new(
-            params.did_str,
-            clock.unix_timestamp,
-            clock.unix_timestamp,
-            Address::new(
-                params.controller_address,
-                clock.unix_timestamp,
-                params.controller_chain,
-                params.controller_signature,
-                Role::Controller,
-                params.controller_nonce,
-            ),
-        ));
+        // msg!("signature: {}", signature);
+
+        // let sig_bytes = bs58::decode(signature).into_vec().unwrap();
+
+        // msg!("sig_bytes: {:?}", sig_bytes);
+
+        // // it is an ethereum signature, derive the actual signature and recover id
+
+        // let signature: [u8; 64] = sig_bytes[..SECP256K1_SIGNATURE_LENGTH].try_into().unwrap();
+        // let recovery_id = sig_bytes[SECP256K1_SIGNATURE_LENGTH] - 27;
+
+        // msg!("signature: {:?}", signature);
+        // msg!("recovery_id: {:?}", recovery_id);
+
+        // match verify_eth_signature(message, signature, public_key) {
+        //     Ok(verified) => {
+        //         msg!("verified: {}", verified);
+        //         if !verified {
+        //             return Err(IdentityErrorCode::InvalidSignature.into());
+        //         }
+        //     }
+        //     Err(_) => {
+        //         return Err(IdentityErrorCode::InvalidSignature.into());
+        //     }
+        // }
+
+        // verify the signature based on controller chain
+
+        // match controller_chain {
+        //     Chain::Solana => {
+        //         // require!(
+        //         //     controller_signature.len() == SOL_SIGNATURE_CHARS,
+        //         //     IdentityErrorCode::InvalidSignatureLength
+        //         // );
+
+        //         msg!("controller_address: {}", controller_address);
+
+        //         // if !(verify_sol_signature(
+        //         //     controller_address.clone(),
+        //         //     controller_signature.clone(),
+        //         //     // controller_nonce,
+        //         // )) {
+        //         //     return Err(IdentityErrorCode::InvalidSignature.into());
+        //         // }
+
+        //         match verify_sol_signature(
+        //             controller_address.clone(),
+        //             controller_signature.clone(),
+        //             // controller_nonce,
+        //         ) {
+        //             Ok(verified) => {
+        //                 if !verified {
+        //                     return Err(IdentityErrorCode::InvalidSignature.into());
+        //                 }
+        //             }
+        //             Err(_) => {
+        //                 return Err(IdentityErrorCode::InvalidSignature.into());
+        //             }
+        //         }
+
+        //         msg!("signature verified")
+        //     }
+        //     Chain::EVM => {
+        //         require!(
+        //             controller_signature.len() == ETH_SIGNATURE_CHARS,
+        //             IdentityErrorCode::InvalidSignatureLength
+        //         );
+
+        //         match verify_eth_signature(
+        //             controller_address.clone(),
+        //             controller_signature.clone(),
+        //             // controller_nonce,
+        //         ) {
+        //             Ok(verified) => {
+        //                 if !verified {
+        //                     return Err(IdentityErrorCode::InvalidSignature.into());
+        //                 }
+        //             }
+        //             Err(_) => {
+        //                 return Err(IdentityErrorCode::InvalidSignature.into());
+        //             }
+        //         }
+        //     }
+        // }
+
+        // did.set_inner(DID::new(
+        //     did_str,
+        //     clock.unix_timestamp,
+        //     clock.unix_timestamp,
+        //     Address::new(
+        //         controller_address,
+        //         clock.unix_timestamp,
+        //         controller_chain,
+        //         controller_signature,
+        //         Role::Controller,
+        //         // controller_nonce,
+        //     ),
+        // ));
 
         Ok(())
     }
@@ -82,30 +177,30 @@ pub mod squircl_did {
 pub struct CreateDIDParams {
     pub did_str: String,
     pub controller_address: String,
-    pub controller_signature: String,
+    pub controller_signature: [u8; 64],
+    pub contoller_recovery_id: u8,
     pub controller_chain: Chain,
-    pub controller_nonce: i64,
+    // pub controller_nonce: [u8; 32],
 }
 
 #[derive(Accounts)]
-#[instruction(params: CreateDIDParams)]
+#[instruction(did_str: String, controller_address: String,  controller_signature: String)]
 pub struct CreateDID<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
 
-    #[account(
-        init,
-        seeds = [b"did".as_ref(), params.did_str.as_ref()],
-        payer = payer,
-        bump,
-        space = DID::LEN_WITHOUT_ADDRESS + (match params.controller_chain {
-            Chain::Solana => Address::SOL_LEN,
-            Chain::EVM => Address::ETH_LEN
-        })
-    )]
-    pub did: Account<'info, DID>,
-
+    // #[account(
+    //     init,
+    //     seeds = [b"did".as_ref(), &hash(did_str.as_bytes()).to_bytes()],
+    //     payer = payer,
+    //     bump,
+    //     space = DID::LEN_WITHOUT_ADDRESS + Address::ETH_LEN
+    // )]
+    // pub did: Account<'info, DID>,
     pub system_program: Program<'info, System>,
+    /// CHECK: we make sure the sysvar is the actual sysvar account
+    #[account(address = IX_ID)]
+    pub ix_sysvar: AccountInfo<'info>,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
@@ -137,23 +232,17 @@ pub struct Address {
     pub chain: Chain,
     pub signature: String,
     pub role: Role,
-    pub nonce: i64,
+    // pub nonce: [u8; 32],
 }
 
 impl Address {
-    pub const ETH_LEN: usize = ETH_ADDRESS_LENGTH
-        + I64_LENGTH
-        + Chain::LEN
-        + ETH_SIGNATURE_LENGTH
-        + Role::LEN
-        + I64_LENGTH;
+    pub const ETH_LEN: usize =
+        ETH_ADDRESS_LENGTH + I64_LENGTH + Chain::LEN + ETH_SIGNATURE_LENGTH + Role::LEN;
+    // + U8_LENGTH * 32;
 
-    pub const SOL_LEN: usize = SOL_ADDRESS_LENGTH
-        + I64_LENGTH
-        + Chain::LEN
-        + SOL_SIGNATURE_LENGTH
-        + Role::LEN
-        + I64_LENGTH;
+    pub const SOL_LEN: usize =
+        SOL_ADDRESS_LENGTH + I64_LENGTH + Chain::LEN + SOL_SIGNATURE_LENGTH + Role::LEN;
+    // + U8_LENGTH * 32;
 
     pub fn new(
         address: String,
@@ -161,7 +250,7 @@ impl Address {
         chain: Chain,
         signature: String,
         role: Role,
-        nonce: i64,
+        // nonce: [u8; 32],
     ) -> Self {
         Self {
             address,
@@ -169,7 +258,7 @@ impl Address {
             chain,
             signature,
             role,
-            nonce,
+            // nonce,
         }
     }
 }
@@ -204,4 +293,6 @@ pub enum IdentityErrorCode {
     InvalidSignatureLength,
     #[msg("Invalid signature")]
     InvalidSignature,
+    #[msg("Invalid addres")]
+    InvalidAddress,
 }
