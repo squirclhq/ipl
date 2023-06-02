@@ -1,126 +1,9 @@
-// use crate::{constants::get_default_create_message, IdentityErrorCode};
-// use anchor_lang::{
-//     prelude::ProgramError,
-//     solana_program::{
-//         keccak,
-//         secp256k1_recover::{secp256k1_recover, SECP256K1_SIGNATURE_LENGTH},
-//     },
-// };
-// // use ed25519_dalek::{PublicKey, Signature};
-
-// pub fn verify_eth_signature(
-//     message: &[u8],
-//     signature: &[u8],
-//     public_key: &[u8],
-// ) -> Result<bool, ProgramError> {
-//     // let message = Message::parse_slice(message)?;
-//     // let signature = RecoverableSignature::parse(signature)?;
-//     // let public_key = PublicKey::parse_slice(public_key)?;
-
-//     // msg!("message: {:?}", message);
-//     // msg!("signature: {:?}", signature);
-//     // msg!("public_key: {:?}", public_key);
-
-//     // let recovery_id = RecoveryId::parse(signature.as_ref()[64])?;
-//     // let signature = signature.into_compact();
-
-//     // msg!("recovery_id: {:?}", recovery_id);
-//     // msg!("signature: {:?}", signature);
-
-//     // let (recovered_key, _) = RecoverableSignature::recover(signature, message);
-
-//     // msg!("recovered_key: {:?}", recovered_key);
-
-//     // if public_key != recovered_key {
-//     //     msg!("public_key != recovered_key");
-//     //     return Err(IdentityErrorCode::InvalidSignature.into());
-//     // }
-
-//     // msg!("public_key == recovered_key");
-
-//     // Ok(())
-
-//     // // let message = get_default_create_message(address.clone(), nonce);
-//     // let message = get_default_create_message(address.clone());
-
-//     let message_hash = keccak::hash(message.as_bytes());
-
-//     // msg!("signature: {:?}", signature);
-//     // msg!("recovery_id: {:?}", recovery_id);
-
-//     // msg!("address: {}", address);
-
-//     let signature = signature[..SECP256K1_SIGNATURE_LENGTH].try_into().unwrap();
-//     let recovery_id = signature[SECP256K1_SIGNATURE_LENGTH] - 27;
-
-//     // // recover public key from signature
-//     // let recovered_pubkey = match secp256k1_recover(message_hash.as_ref(), recovery_id, &signature) {
-//     //     Ok(recovered_pubkey) => recovered_pubkey,
-//     //     Err(_) => {
-//     //         msg!("err recovering");
-//     //         return Err(Secp256k1RecoverError::InvalidSignature);
-//     //     }
-//     // };
-
-//     // // msg!(
-//     // //     "recovered_pubkey hex: {:?}",
-//     // //     hex::encode(recovered_pubkey.to_bytes())
-//     // // );
-//     // let mut r_address = [0u8; 20];
-//     // r_address.copy_from_slice(&keccak::hash(recovered_pubkey.to_bytes().as_ref()).to_bytes()[12..]);
-//     // msg!("r_address: {:?}", r_address);
-
-//     // // remove 0x from address
-
-//     // // convert the address stirng to Secp256k1Pubkey
-//     // let address_bytes = hex::decode(address.trim_start_matches("0x")).unwrap();
-//     // msg!("address_bytes: {:?}", address_bytes);
-//     // // let address_pubkey = Secp256k1Pubkey::new(&address_bytes);
-//     // // msg!("address_pubkey: {:?}", address_pubkey.to_bytes());
-
-//     // msg!("recovered_pubkey: {:?}", recovered_pubkey.to_bytes());
-//     // msg!("address_bytes: {:?}", address_bytes.deref());
-
-//     // msg!("recover address hex: {:?}", hex::encode(r_address));
-//     // msg!("address hex: {:?}", hex::encode(address_bytes.deref()));
-
-//     // // compare the recovered public key with the address
-//     // Ok(recovered_pubkey.to_bytes() == address_bytes.deref())
-// }
-
-// pub fn verify_sol_signature(address: String, signature: String) -> Result<bool, IdentityErrorCode> {
-//     // let message = get_default_create_message(address.clone(), nonce);
-//     let message = get_default_create_message(address.clone());
-//     let message_bytes = message.as_bytes();
-
-//     // let pubkey = match Pubkey::from_str(&address) {
-//     //     Ok(pubkey) => pubkey,
-//     //     Err(_) => return Err(IdentityErrorCode::InvalidAddress.into()),
-//     // };
-
-//     // let public_key = match PublicKey::from_bytes(&pubkey.to_bytes()) {
-//     //     Ok(public_key) => public_key,
-//     //     Err(_) => return Err(IdentityErrorCode::InvalidAddress.into()),
-//     // };
-
-//     // // decode base58 signature
-//     // let signature_bytes = match bs58::decode(signature).into_vec() {
-//     //     Ok(signature_bytes) => signature_bytes,
-//     //     Err(_) => return Err(IdentityErrorCode::InvalidSignature.into()),
-//     // };
-
-//     // let sig = match Signature::from_bytes(&signature_bytes) {
-//     //     Ok(sig) => sig,
-//     //     Err(_) => return Err(IdentityErrorCode::InvalidSignature.into()),
-//     // };
-
-//     // Ok(public_key.verify_strict(message_bytes, &sig).is_ok())
-//     Ok(true)
-// }
+// Big kudos to https://github.com/GuidoDipietro/solana-ed25519-secp256k1-sig-verification/blob/master/programs/solana-ed25519-sig-verification/src/lib.rs
 
 use anchor_lang::{
     prelude::*,
     solana_program::{
+        ed25519_program::ID as ED25519_ID,
         entrypoint::ProgramResult,
         hash::hash,
         instruction::Instruction,
@@ -139,7 +22,9 @@ pub fn verify_secp256k1_ix(
     sig: &[u8],
     recovery_id: u8,
 ) -> Result<()> {
-    if ix.program_id != SECP256K1_ID
+    if ix.program_id       != SECP256K1_ID                 ||  // The program id we expect
+    ix.accounts.len()   != 0                            ||  // With no context accounts
+    ix.data.len()       != (12 + 20 + 64 + 1 + msg.len())
     // And data of this size
     {
         msg!("Invalid Secp256k1 instruction");
@@ -147,6 +32,21 @@ pub fn verify_secp256k1_ix(
     }
 
     check_secp256k1_data(&ix.data, eth_address, msg, sig, recovery_id)?; // If that's not the case, check data
+
+    Ok(())
+}
+
+pub fn verify_ed25519_ix(ix: &Instruction, pubkey: &[u8], msg: &[u8], sig: &[u8]) -> Result<()> {
+    if ix.program_id       != ED25519_ID                   ||  // The program id we expect
+        ix.accounts.len()   != 0                            ||  // With no context accounts
+        ix.data.len()       != (16 + 64 + 32 + msg.len())
+    // And data of this size
+    {
+        msg!("Invalid ed25519 instruction");
+        return Err(IdentityErrorCode::InvalidSignature.into()); // Otherwise, we can already throw err
+    }
+
+    check_ed25519_data(&ix.data, pubkey, msg, sig)?; // If that's not the case, check data
 
     Ok(())
 }
@@ -197,115 +97,170 @@ pub fn check_secp256k1_data(
     // Header and Arg Checks
 
     // Header
-    // if num_signatures != &exp_num_signatures.to_le_bytes()
-    //     || signature_offset != &exp_signature_offset.to_le_bytes()
-    //     || signature_instruction_index != &[0]
-    //     || eth_address_offset != &exp_eth_address_offset.to_le_bytes()
-    //     || eth_address_instruction_index != &[0]
-    //     || message_data_offset != &exp_message_data_offset.to_le_bytes()
-    //     || message_data_size != &msg_len.to_le_bytes()
-    //     || message_instruction_index != &[0]
-    // {
-    //     msg!("Invalid Secp256k1 instruction data 1");
-    //     return Err(IdentityErrorCode::InvalidSignature.into()); // Otherwise, we can already throw err
-    // }
+    if num_signatures != &exp_num_signatures.to_le_bytes()
+        || signature_offset != &exp_signature_offset.to_le_bytes()
+        || signature_instruction_index != &[0]
+        || eth_address_offset != &exp_eth_address_offset.to_le_bytes()
+        || eth_address_instruction_index != &[0]
+        || message_data_offset != &exp_message_data_offset.to_le_bytes()
+        || message_data_size != &msg_len.to_le_bytes()
+        || message_instruction_index != &[0]
+    {
+        msg!("Invalid Secp256k1 instruction data (header)");
+        return Err(IdentityErrorCode::InvalidSignature.into()); // Otherwise, we can already throw err
+    }
 
     // the above check is failing, figure out by logging which check is actually failing
 
-    if num_signatures != &exp_num_signatures.to_le_bytes() {
-        msg!("num_signatures: {:?}", num_signatures);
-        msg!("exp_num_signatures: {:?}", exp_num_signatures.to_le_bytes());
-        msg!("num_signatures != exp_num_signatures");
+    // if num_signatures != &exp_num_signatures.to_le_bytes() {
+    //     msg!("num_signatures: {:?}", num_signatures);
+    //     msg!("exp_num_signatures: {:?}", exp_num_signatures.to_le_bytes());
+    //     msg!("num_signatures != exp_num_signatures");
+    // }
+
+    // if signature_offset != &exp_signature_offset.to_le_bytes() {
+    //     msg!("signature_offset: {:?}", signature_offset);
+    //     msg!(
+    //         "exp_signature_offset: {:?}",
+    //         exp_signature_offset.to_le_bytes()
+    //     );
+    //     msg!("signature_offset != exp_signature_offset");
+    // }
+
+    // if signature_instruction_index != &[0] {
+    //     msg!(
+    //         "signature_instruction_index: {:?}",
+    //         signature_instruction_index
+    //     );
+    //     msg!("signature_instruction_index != &[0]");
+    // }
+
+    // if eth_address_offset != &exp_eth_address_offset.to_le_bytes() {
+    //     msg!("eth_address_offset: {:?}", eth_address_offset);
+    //     msg!(
+    //         "exp_eth_address_offset: {:?}",
+    //         exp_eth_address_offset.to_le_bytes()
+    //     );
+    //     msg!("eth_address_offset != exp_eth_address_offset");
+    // }
+
+    // if eth_address_instruction_index != &[0] {
+    //     msg!(
+    //         "eth_address_instruction_index: {:?}",
+    //         eth_address_instruction_index
+    //     );
+    //     msg!("eth_address_instruction_index != &[0]");
+    // }
+
+    // if message_data_offset != &exp_message_data_offset.to_le_bytes() {
+    //     msg!("message_data_offset: {:?}", message_data_offset);
+    //     msg!(
+    //         "exp_message_data_offset: {:?}",
+    //         exp_message_data_offset.to_le_bytes()
+    //     );
+    //     msg!("message_data_offset != exp_message_data_offset");
+    // }
+
+    // if message_data_size != &msg_len.to_le_bytes() {
+    //     msg!("message_data_size: {:?}", message_data_size);
+    //     msg!("msg_len: {:?}", msg_len);
+    //     msg!("message_data_size != msg_len");
+    // }
+
+    // if message_instruction_index != &[0] {
+    //     msg!("message_instruction_index: {:?}", message_instruction_index);
+    //     msg!("message_instruction_index != &[0]");
+    // }
+
+    // Arguments
+    if data_eth_address != eth_address
+        || data_sig != sig
+        || data_recovery_id != &[recovery_id]
+        || data_msg != msg
+    {
+        msg!("Invalid Secp256k1 instruction data (arguments)");
+        return Err(IdentityErrorCode::InvalidSignature.into()); // Otherwise, we can already throw err
     }
 
-    if signature_offset != &exp_signature_offset.to_le_bytes() {
-        msg!("signature_offset: {:?}", signature_offset);
-        msg!(
-            "exp_signature_offset: {:?}",
-            exp_signature_offset.to_le_bytes()
-        );
-        msg!("signature_offset != exp_signature_offset");
-    }
+    // the above check is failing, figure out by logging which check is actually failing
 
-    if signature_instruction_index != &[0] {
-        msg!(
-            "signature_instruction_index: {:?}",
-            signature_instruction_index
-        );
-        msg!("signature_instruction_index != &[0]");
-    }
+    // if data_eth_address != eth_address {
+    //     msg!("data_eth_address: {:?}", data_eth_address);
+    //     msg!("eth_address: {:?}", eth_address);
+    //     msg!("data_eth_address != eth_address");
+    // }
 
-    if eth_address_offset != &exp_eth_address_offset.to_le_bytes() {
-        msg!("eth_address_offset: {:?}", eth_address_offset);
-        msg!(
-            "exp_eth_address_offset: {:?}",
-            exp_eth_address_offset.to_le_bytes()
-        );
-        msg!("eth_address_offset != exp_eth_address_offset");
-    }
+    // if data_sig != sig {
+    //     msg!("data_sig: {:?}", data_sig);
+    //     msg!("sig: {:?}", sig);
+    //     msg!("data_sig != sig");
+    // }
 
-    if eth_address_instruction_index != &[0] {
-        msg!(
-            "eth_address_instruction_index: {:?}",
-            eth_address_instruction_index
-        );
-        msg!("eth_address_instruction_index != &[0]");
-    }
+    // if data_recovery_id != &[recovery_id] {
+    //     msg!("data_recovery_id: {:?}", data_recovery_id);
+    //     msg!("recovery_id: {:?}", recovery_id);
+    //     msg!("data_recovery_id != &[recovery_id]");
+    // }
 
-    if message_data_offset != &exp_message_data_offset.to_le_bytes() {
-        msg!("message_data_offset: {:?}", message_data_offset);
-        msg!(
-            "exp_message_data_offset: {:?}",
-            exp_message_data_offset.to_le_bytes()
-        );
-        msg!("message_data_offset != exp_message_data_offset");
-    }
+    // if data_msg != msg {
+    //     msg!("data_msg: {:?}", data_msg);
+    //     msg!("msg: {:?}", msg);
+    //     msg!("data_msg != msg");
+    // }
 
-    if message_data_size != &msg_len.to_le_bytes() {
-        msg!("message_data_size: {:?}", message_data_size);
-        msg!("msg_len: {:?}", msg_len);
-        msg!("message_data_size != msg_len");
-    }
+    Ok(())
+}
 
-    if message_instruction_index != &[0] {
-        msg!("message_instruction_index: {:?}", message_instruction_index);
-        msg!("message_instruction_index != &[0]");
+/// Verify serialized Ed25519Program instruction data
+pub fn check_ed25519_data(data: &[u8], pubkey: &[u8], msg: &[u8], sig: &[u8]) -> Result<()> {
+    // According to this layout used by the Ed25519Program
+    // https://github.com/solana-labs/solana-web3.js/blob/master/src/ed25519-program.ts#L33
+
+    // "Deserializing" byte slices
+
+    let num_signatures = &[data[0]]; // Byte  0
+    let padding = &[data[1]]; // Byte  1
+    let signature_offset = &data[2..=3]; // Bytes 2,3
+    let signature_instruction_index = &data[4..=5]; // Bytes 4,5
+    let public_key_offset = &data[6..=7]; // Bytes 6,7
+    let public_key_instruction_index = &data[8..=9]; // Bytes 8,9
+    let message_data_offset = &data[10..=11]; // Bytes 10,11
+    let message_data_size = &data[12..=13]; // Bytes 12,13
+    let message_instruction_index = &data[14..=15]; // Bytes 14,15
+
+    let data_pubkey = &data[16..16 + 32]; // Bytes 16..16+32
+    let data_sig = &data[48..48 + 64]; // Bytes 48..48+64
+    let data_msg = &data[112..]; // Bytes 112..end
+
+    // Expected values
+
+    let exp_public_key_offset: u16 = 16; // 2*u8 + 7*u16
+    let exp_signature_offset: u16 = exp_public_key_offset + pubkey.len() as u16;
+    let exp_message_data_offset: u16 = exp_signature_offset + sig.len() as u16;
+    let exp_num_signatures: u8 = 1;
+    let exp_message_data_size: u16 = msg.len().try_into().unwrap();
+
+    // Header and Arg Checks
+
+    // Header
+    if num_signatures != &exp_num_signatures.to_le_bytes()
+        || padding != &[0]
+        || signature_offset != &exp_signature_offset.to_le_bytes()
+        || signature_instruction_index != &u16::MAX.to_le_bytes()
+        || public_key_offset != &exp_public_key_offset.to_le_bytes()
+        || public_key_instruction_index != &u16::MAX.to_le_bytes()
+        || message_data_offset != &exp_message_data_offset.to_le_bytes()
+        || message_data_size != &exp_message_data_size.to_le_bytes()
+        || message_instruction_index != &u16::MAX.to_le_bytes()
+    {
+        msg!("Invalid Ed25519 instruction data (header)");
+        return Err(IdentityErrorCode::InvalidSignature.into()); // Otherwise, we can already throw err
     }
 
     // Arguments
-    // if data_eth_address != eth_address
-    //     || data_sig != sig
-    //     || data_recovery_id != &[recovery_id]
-    //     || data_msg != msg
-    // {
-    //     msg!("Invalid Secp256k1 instruction data 2");
-    //     return Err(IdentityErrorCode::InvalidSignature.into()); // Otherwise, we can already throw err
-    // }
-
-    // the above check is failing, figure out by logging which check is actually failing
-
-    if data_eth_address != eth_address {
-        msg!("data_eth_address: {:?}", data_eth_address);
-        msg!("eth_address: {:?}", eth_address);
-        msg!("data_eth_address != eth_address");
-    }
-
-    if data_sig != sig {
-        msg!("data_sig: {:?}", data_sig);
-        msg!("sig: {:?}", sig);
-        msg!("data_sig != sig");
-    }
-
-    if data_recovery_id != &[recovery_id] {
-        msg!("data_recovery_id: {:?}", data_recovery_id);
-        msg!("recovery_id: {:?}", recovery_id);
-        msg!("data_recovery_id != &[recovery_id]");
-    }
-
-    if data_msg != msg {
-        msg!("data_msg: {:?}", data_msg);
-        msg!("msg: {:?}", msg);
-        msg!("data_msg != msg");
+    if data_pubkey != pubkey || data_msg != msg || data_sig != sig {
+        msg!("Invalid Ed25519 instruction data (arguments)");
+        return Err(IdentityErrorCode::InvalidSignature.into()); // Otherwise, we can already throw err
     }
 
     Ok(())

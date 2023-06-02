@@ -1,11 +1,7 @@
-use crate::utils::verify_secp256k1_ix;
 use anchor_lang::{
     prelude::*,
-    solana_program::secp256k1_recover::SECP256K1_SIGNATURE_LENGTH,
     solana_program::{
-        hash::hash,
         instruction::Instruction,
-        secp256k1_program::ID as SECP256K1_ID,
         sysvar::instructions::{load_instruction_at_checked, ID as IX_ID},
     },
 };
@@ -28,17 +24,13 @@ declare_id!("AF4ChbnZ2DfGTHdNxHkmdrZkvRBbHYq1WcmnLiFRxwkZ");
 #[program]
 pub mod squircl_did {
 
-    use crate::utils::verify_secp256k1_ix;
+    use crate::utils::{verify_ed25519_ix, verify_secp256k1_ix};
 
     use super::*;
 
-    pub fn create_did(
+    pub fn create_did_evm(
         ctx: Context<CreateDID>,
         // did_str: String,
-        // eth_address: [u8; 20],
-        // msg: [u8; 64],
-        // sig: [u8; 64],
-        // recovery_id: u8,
         eth_address_base58: String,
         sig_base58: String,
         msg_base58: String,
@@ -70,104 +62,37 @@ pub mod squircl_did {
             }
         }
 
-        // msg!("signature: {}", signature);
+        Ok(())
+    }
 
-        // let sig_bytes = bs58::decode(signature).into_vec().unwrap();
+    pub fn create_did_sol(
+        ctx: Context<CreateDID>,
+        sol_address_base58: String,
+        sig_base58: String,
+        msg_base58: String,
+    ) -> Result<()> {
+        let ix: Instruction = load_instruction_at_checked(0, &ctx.accounts.ix_sysvar)?;
 
-        // msg!("sig_bytes: {:?}", sig_bytes);
+        let sol_address_binding = bs58::decode(sol_address_base58).into_vec().unwrap();
+        let sol_address = sol_address_binding.as_slice();
+        let msg_binding: Vec<u8> = bs58::decode(msg_base58).into_vec().unwrap();
+        let msg = msg_binding.as_slice();
+        let sig_binding = bs58::decode(sig_base58).into_vec().unwrap();
+        let sig = sig_binding.as_slice();
 
-        // // it is an ethereum signature, derive the actual signature and recover id
+        msg!("sol_address: {:?}", sol_address);
+        msg!("sig: {:?}", sig);
+        msg!("msg: {:?}", msg);
 
-        // let signature: [u8; 64] = sig_bytes[..SECP256K1_SIGNATURE_LENGTH].try_into().unwrap();
-        // let recovery_id = sig_bytes[SECP256K1_SIGNATURE_LENGTH] - 27;
-
-        // msg!("signature: {:?}", signature);
-        // msg!("recovery_id: {:?}", recovery_id);
-
-        // match verify_eth_signature(message, signature, public_key) {
-        //     Ok(verified) => {
-        //         msg!("verified: {}", verified);
-        //         if !verified {
-        //             return Err(IdentityErrorCode::InvalidSignature.into());
-        //         }
-        //     }
-        //     Err(_) => {
-        //         return Err(IdentityErrorCode::InvalidSignature.into());
-        //     }
-        // }
-
-        // verify the signature based on controller chain
-
-        // match controller_chain {
-        //     Chain::Solana => {
-        //         // require!(
-        //         //     controller_signature.len() == SOL_SIGNATURE_CHARS,
-        //         //     IdentityErrorCode::InvalidSignatureLength
-        //         // );
-
-        //         msg!("controller_address: {}", controller_address);
-
-        //         // if !(verify_sol_signature(
-        //         //     controller_address.clone(),
-        //         //     controller_signature.clone(),
-        //         //     // controller_nonce,
-        //         // )) {
-        //         //     return Err(IdentityErrorCode::InvalidSignature.into());
-        //         // }
-
-        //         match verify_sol_signature(
-        //             controller_address.clone(),
-        //             controller_signature.clone(),
-        //             // controller_nonce,
-        //         ) {
-        //             Ok(verified) => {
-        //                 if !verified {
-        //                     return Err(IdentityErrorCode::InvalidSignature.into());
-        //                 }
-        //             }
-        //             Err(_) => {
-        //                 return Err(IdentityErrorCode::InvalidSignature.into());
-        //             }
-        //         }
-
-        //         msg!("signature verified")
-        //     }
-        //     Chain::EVM => {
-        //         require!(
-        //             controller_signature.len() == ETH_SIGNATURE_CHARS,
-        //             IdentityErrorCode::InvalidSignatureLength
-        //         );
-
-        //         match verify_eth_signature(
-        //             controller_address.clone(),
-        //             controller_signature.clone(),
-        //             // controller_nonce,
-        //         ) {
-        //             Ok(verified) => {
-        //                 if !verified {
-        //                     return Err(IdentityErrorCode::InvalidSignature.into());
-        //                 }
-        //             }
-        //             Err(_) => {
-        //                 return Err(IdentityErrorCode::InvalidSignature.into());
-        //             }
-        //         }
-        //     }
-        // }
-
-        // did.set_inner(DID::new(
-        //     did_str,
-        //     clock.unix_timestamp,
-        //     clock.unix_timestamp,
-        //     Address::new(
-        //         controller_address,
-        //         clock.unix_timestamp,
-        //         controller_chain,
-        //         controller_signature,
-        //         Role::Controller,
-        //         // controller_nonce,
-        //     ),
-        // ));
+        match verify_ed25519_ix(&ix, sol_address, msg, sig) {
+            Ok(()) => {
+                msg!("signature verified");
+            }
+            Err(_) => {
+                msg!("signature not verified root");
+                return Err(IdentityErrorCode::InvalidSignature.into());
+            }
+        }
 
         Ok(())
     }
