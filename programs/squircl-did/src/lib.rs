@@ -24,7 +24,14 @@ declare_id!("AF4ChbnZ2DfGTHdNxHkmdrZkvRBbHYq1WcmnLiFRxwkZ");
 #[program]
 pub mod squircl_did {
 
-    use crate::utils::{verify_ed25519_ix, verify_secp256k1_ix};
+    use std::fmt::format;
+
+    use anchor_lang::solana_program::keccak;
+
+    use crate::{
+        constants::{get_default_create_message, get_ethereum_message_hash},
+        utils::{verify_ed25519_ix, verify_secp256k1_ix},
+    };
 
     use super::*;
 
@@ -52,6 +59,26 @@ pub mod squircl_did {
         msg!("sig: {:?}", sig);
         msg!("msg: {:?}", msg);
 
+        let eth_address_hex = format!("0x{}", hex::encode(eth_address));
+
+        let new_did_message = get_default_create_message(eth_address_hex);
+
+        msg!("new_did_message: {:?}", new_did_message);
+
+        let msg_binding = get_ethereum_message_hash(new_did_message);
+        let msg_single = msg_binding.as_slice();
+        let msg_single_hash = keccak::hash(msg_single);
+
+        let double_msg_binding = [
+            "\x19Ethereum Signed Message:\n32".as_bytes(),
+            &msg_single_hash.to_bytes(),
+        ]
+        .concat();
+
+        let msg = double_msg_binding.as_slice();
+
+        msg!("msg: {:?}", msg);
+
         match verify_secp256k1_ix(&ix, eth_address, &msg, sig, recovery_id) {
             Ok(()) => {
                 msg!("signature verified");
@@ -73,12 +100,18 @@ pub mod squircl_did {
     ) -> Result<()> {
         let ix: Instruction = load_instruction_at_checked(0, &ctx.accounts.ix_sysvar)?;
 
-        let sol_address_binding = bs58::decode(sol_address_base58).into_vec().unwrap();
+        let sol_address_binding = bs58::decode(sol_address_base58.clone()).into_vec().unwrap();
         let sol_address = sol_address_binding.as_slice();
-        let msg_binding: Vec<u8> = bs58::decode(msg_base58).into_vec().unwrap();
-        let msg = msg_binding.as_slice();
+        // let msg_binding: Vec<u8> = bs58::decode(msg_base58).into_vec().unwrap();
+        // let msg = msg_binding.as_slice();
         let sig_binding = bs58::decode(sig_base58).into_vec().unwrap();
         let sig = sig_binding.as_slice();
+
+        let new_did_message = get_default_create_message(sol_address_base58);
+
+        msg!("new_did_message: {:?}", new_did_message);
+
+        let msg: &[u8] = new_did_message.as_bytes();
 
         msg!("sol_address: {:?}", sol_address);
         msg!("sig: {:?}", sig);

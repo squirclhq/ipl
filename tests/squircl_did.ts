@@ -28,7 +28,7 @@ describe("squircl_identity", () => {
   it("should create a new did document with a ethereum wallet", async () => {
     const eth_signer = ethers.Wallet.createRandom();
 
-    const message = `I am creating a new Squircl DID with the address ${eth_signer.address}`;
+    const message = `I am creating a new Squircl DID with the address ${eth_signer.address.toLowerCase()}`;
 
     console.log(message);
 
@@ -52,9 +52,8 @@ describe("squircl_identity", () => {
       msg_digest,
     ]);
 
-    console.log([].slice.call(arrayify("0x" + eth_address)).length);
-    console.log([].slice.call(Buffer.from(actual_message)).length);
-    console.log([].slice.call(Buffer.from(signature)).length);
+    console.log("actual_message", actual_message);
+    console.log("digest", msg_digest);
 
     const sig = await program.methods
       .createDidEvm(
@@ -84,6 +83,8 @@ describe("squircl_identity", () => {
   it("should create a new did document with a solana wallet", async () => {
     const keypair = anchor.web3.Keypair.generate();
     const message = `I am creating a new Squircl DID with the address ${keypair.publicKey.toBase58()}`;
+
+    console.log("message", message);
 
     const messageEncoded = Uint8Array.from(Buffer.from(message));
 
