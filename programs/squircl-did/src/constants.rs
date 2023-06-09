@@ -43,10 +43,18 @@ pub const ETHEREUM_MSG_PREFIX: &str = "\x19Ethereum Signed Message:\n";
 // this is the js implementation, give me rust for hashMessage
 
 pub fn get_ethereum_message_hash(message: String) -> Vec<u8> {
-    [
+    let msg_data = [
         "\x19Ethereum Signed Message:\n".as_bytes(),
         message.len().to_string().as_bytes(),
         message.as_ref(),
+    ]
+    .concat();
+
+    let hash = keccak::hash(&msg_data);
+
+    [
+        "\x19Ethereum Signed Message:\n32".as_bytes(),
+        &hash.to_bytes(),
     ]
     .concat()
 }

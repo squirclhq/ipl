@@ -8,6 +8,7 @@ import bs58 from "bs58";
 import { Transaction, Wallet, ethers } from "ethers";
 import { hexlify, arrayify } from "@ethersproject/bytes";
 import base58 from "bs58";
+import { expect, should } from "chai";
 
 const generateRandomDID = () => {
   const randomBytes = crypto.randomBytes(24); // 24 bytes = 48 characters
@@ -25,12 +26,32 @@ describe("squircl_identity", () => {
 
   const payer = anchor.workspace.SquirclIdentity.provider.wallet;
 
+  const getDIDAccount = (didStr: string) => {
+    const hexString = crypto
+      .createHash("sha256")
+      .update(didStr, "utf-8")
+      .digest("hex");
+
+    let seed = Uint8Array.from(Buffer.from(hexString, "hex"));
+
+    let [didAccount] = anchor.web3.PublicKey.findProgramAddressSync(
+      [seed],
+      program.programId
+    );
+
+    return didAccount;
+  };
+
   it("should create a new did document with a ethereum wallet", async () => {
+    const didStr = generateRandomDID();
+
+    const didAccount = getDIDAccount(didStr);
+
     const eth_signer = ethers.Wallet.createRandom();
 
     const message = `I am creating a new Squircl DID with the address ${eth_signer.address.toLowerCase()}`;
 
-    console.log(message);
+    // console.log(message);
 
     const messageHash = ethers.hashMessage(message);
 
@@ -52,18 +73,19 @@ describe("squircl_identity", () => {
       msg_digest,
     ]);
 
-    console.log("actual_message", actual_message);
-    console.log("digest", msg_digest);
+    // console.log("actual_message", actual_message);
+    // console.log("digest", msg_digest);
 
     const sig = await program.methods
       .createDidEvm(
+        didStr,
         base58.encode(arrayify("0x" + eth_address)),
         base58.encode(signature),
         base58.encode(actual_message),
         recoveryId
       )
       .accounts({
-        // did: didAccount,
+        did: didAccount,
         ixSysvar: anchor.web3.SYSVAR_INSTRUCTIONS_PUBKEY,
         payer: payer.publicKey,
       })
@@ -77,14 +99,28 @@ describe("squircl_identity", () => {
       ])
       .rpc();
 
-    console.log(sig);
+    const didAccountData = await program.account.did.fetch(didAccount);
+
+    expect(didAccountData.did).to.equal(didStr);
+    expect(didAccountData.controllerMultisigThreshold).to.equal(1);
+    expect(didAccountData.addresses[0].address).to.equal(
+      eth_signer.address.toLowerCase()
+    );
+    expect(didAccountData.addresses[0].signature).to.equal(
+      hexlify(full_sig_bytes)
+    );
+
+    expect(didAccountData.addresses[0].chain).to.deep.equal({ evm: {} });
+    expect(didAccountData.addresses[0].role).to.deep.equal({ controller: {} });
   });
 
   it("should create a new did document with a solana wallet", async () => {
+    const didStr = generateRandomDID();
+
+    const didAccount = getDIDAccount(didStr);
+
     const keypair = anchor.web3.Keypair.generate();
     const message = `I am creating a new Squircl DID with the address ${keypair.publicKey.toBase58()}`;
-
-    console.log("message", message);
 
     const messageEncoded = Uint8Array.from(Buffer.from(message));
 
@@ -92,12 +128,13 @@ describe("squircl_identity", () => {
 
     const sig = await program.methods
       .createDidSol(
+        didStr,
         bs58.encode(keypair.publicKey.toBuffer()),
         bs58.encode(signature),
         bs58.encode(messageEncoded)
       )
       .accounts({
-        // did: didAccount,
+        did: didAccount,
         ixSysvar: anchor.web3.SYSVAR_INSTRUCTIONS_PUBKEY,
         payer: payer.publicKey,
       })
@@ -110,6 +147,17 @@ describe("squircl_identity", () => {
       ])
       .rpc();
 
-    console.log(sig);
+    const didAccountData = await program.account.did.fetch(didAccount);
+
+    expect(didAccountData.did).to.equal(didStr);
+    expect(didAccountData.controllerMultisigThreshold).to.equal(1);
+    expect(didAccountData.addresses[0].address).to.equal(
+      keypair.publicKey.toBase58()
+    );
+    expect(didAccountData.addresses[0].signature).to.equal(
+      bs58.encode(signature)
+    );
+    expect(didAccountData.addresses[0].chain).to.deep.equal({ solana: {} });
+    expect(didAccountData.addresses[0].role).to.deep.equal({ controller: {} });
   });
 });

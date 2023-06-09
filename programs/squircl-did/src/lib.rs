@@ -1,6 +1,7 @@
 use anchor_lang::{
     prelude::*,
     solana_program::{
+        hash,
         instruction::Instruction,
         sysvar::instructions::{load_instruction_at_checked, ID as IX_ID},
     },
@@ -15,18 +16,8 @@ pub mod utils;
 
 declare_id!("AF4ChbnZ2DfGTHdNxHkmdrZkvRBbHYq1WcmnLiFRxwkZ");
 
-// #[derive(AnchorSerialize, AnchorDeserialize)]
-// pub struct Secp256k1RawSignature {
-//     pub signature: [u8; 64],
-//     pub recovery_id: u8,
-// }
-
 #[program]
 pub mod squircl_did {
-
-    use std::fmt::format;
-
-    use anchor_lang::solana_program::keccak;
 
     use crate::{
         constants::{get_default_create_message, get_ethereum_message_hash},
@@ -36,48 +27,38 @@ pub mod squircl_did {
     use super::*;
 
     pub fn create_did_evm(
-        ctx: Context<CreateDID>,
-        // did_str: String,
+        ctx: Context<CreateDIDEVM>,
+        did_str: String,
         eth_address_base58: String,
         sig_base58: String,
         msg_base58: String,
         recovery_id: u8,
     ) -> Result<()> {
-        // let did = &mut ctx.accounts.did;
+        let did = &mut ctx.accounts.did;
 
-        // let clock: Clock = Clock::get()?;
+        let clock: Clock = Clock::get()?;
 
         let ix: Instruction = load_instruction_at_checked(0, &ctx.accounts.ix_sysvar)?;
 
         let eth_address_binding = bs58::decode(eth_address_base58).into_vec().unwrap();
         let eth_address = eth_address_binding.as_slice();
-        let msg: Vec<u8> = bs58::decode(msg_base58).into_vec().unwrap();
         let sig_binding = bs58::decode(sig_base58).into_vec().unwrap();
         let sig = sig_binding.as_slice();
 
-        msg!("eth_address: {:?}", eth_address);
-        msg!("sig: {:?}", sig);
-        msg!("msg: {:?}", msg);
+        // msg!("eth_address: {:?}", eth_address);
+        // msg!("sig: {:?}", sig);
 
         let eth_address_hex = format!("0x{}", hex::encode(eth_address));
 
-        let new_did_message = get_default_create_message(eth_address_hex);
+        let new_did_message = get_default_create_message(eth_address_hex.clone());
 
-        msg!("new_did_message: {:?}", new_did_message);
+        // msg!("new_did_message: {:?}", new_did_message);
 
         let msg_binding = get_ethereum_message_hash(new_did_message);
-        let msg_single = msg_binding.as_slice();
-        let msg_single_hash = keccak::hash(msg_single);
 
-        let double_msg_binding = [
-            "\x19Ethereum Signed Message:\n32".as_bytes(),
-            &msg_single_hash.to_bytes(),
-        ]
-        .concat();
+        let msg = msg_binding.as_slice();
 
-        let msg = double_msg_binding.as_slice();
-
-        msg!("msg: {:?}", msg);
+        // msg!("msg: {:?}", msg);
 
         match verify_secp256k1_ix(&ix, eth_address, &msg, sig, recovery_id) {
             Ok(()) => {
@@ -89,25 +70,45 @@ pub mod squircl_did {
             }
         }
 
+        // convert the ethereum signature to a hex string (should contain the recovery id)
+
+        let sig_hex = format!("0x{}", hex::encode([sig, &[recovery_id + 27]].concat()));
+
+        did.set_inner(Did::new(
+            did_str,
+            clock.clone(),
+            Address::new_eth(
+                eth_address_hex,
+                clock.unix_timestamp,
+                sig_hex,
+                Role::Controller,
+            ),
+        ));
+
         Ok(())
     }
 
     pub fn create_did_sol(
-        ctx: Context<CreateDID>,
+        ctx: Context<CreateDIDSOL>,
+        did_str: String,
         sol_address_base58: String,
         sig_base58: String,
         msg_base58: String,
     ) -> Result<()> {
         let ix: Instruction = load_instruction_at_checked(0, &ctx.accounts.ix_sysvar)?;
 
+        let did = &mut ctx.accounts.did;
+
+        let clock: Clock = Clock::get()?;
+
         let sol_address_binding = bs58::decode(sol_address_base58.clone()).into_vec().unwrap();
         let sol_address = sol_address_binding.as_slice();
         // let msg_binding: Vec<u8> = bs58::decode(msg_base58).into_vec().unwrap();
         // let msg = msg_binding.as_slice();
-        let sig_binding = bs58::decode(sig_base58).into_vec().unwrap();
+        let sig_binding = bs58::decode(sig_base58.clone()).into_vec().unwrap();
         let sig = sig_binding.as_slice();
 
-        let new_did_message = get_default_create_message(sol_address_base58);
+        let new_did_message = get_default_create_message(sol_address_base58.clone());
 
         msg!("new_did_message: {:?}", new_did_message);
 
@@ -127,6 +128,17 @@ pub mod squircl_did {
             }
         }
 
+        did.set_inner(Did::new(
+            did_str,
+            clock.clone(),
+            Address::new_sol(
+                sol_address_base58,
+                clock.unix_timestamp,
+                sig_base58,
+                Role::Controller,
+            ),
+        ));
+
         Ok(())
     }
 }
@@ -142,19 +154,39 @@ pub struct CreateDIDParams {
 }
 
 #[derive(Accounts)]
-#[instruction(did_str: String, controller_address: String,  controller_signature: String)]
-pub struct CreateDID<'info> {
+#[instruction(did_str: String)]
+pub struct CreateDIDEVM<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
 
-    // #[account(
-    //     init,
-    //     seeds = [b"did".as_ref(), &hash(did_str.as_bytes()).to_bytes()],
-    //     payer = payer,
-    //     bump,
-    //     space = DID::LEN_WITHOUT_ADDRESS + Address::ETH_LEN
-    // )]
-    // pub did: Account<'info, DID>,
+    #[account(
+        init,
+        seeds = [&hash::hash(did_str.as_bytes()).to_bytes()],
+        payer = payer,
+        bump,
+        space = Did::LEN_WITHOUT_ADDRESS + Address::ETH_LEN
+    )]
+    pub did: Account<'info, Did>,
+    pub system_program: Program<'info, System>,
+    /// CHECK: we make sure the sysvar is the actual sysvar account
+    #[account(address = IX_ID)]
+    pub ix_sysvar: AccountInfo<'info>,
+}
+
+#[derive(Accounts)]
+#[instruction(did_str: String)]
+pub struct CreateDIDSOL<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
+    #[account(
+        init,
+        seeds = [&hash::hash(did_str.as_bytes()).to_bytes()],
+        payer = payer,
+        bump,
+        space = Did::LEN_WITHOUT_ADDRESS + Address::ETH_LEN
+    )]
+    pub did: Account<'info, Did>,
     pub system_program: Program<'info, System>,
     /// CHECK: we make sure the sysvar is the actual sysvar account
     #[account(address = IX_ID)]
@@ -202,10 +234,9 @@ impl Address {
         SOL_ADDRESS_LENGTH + I64_LENGTH + Chain::LEN + SOL_SIGNATURE_LENGTH + Role::LEN;
     // + U8_LENGTH * 32;
 
-    pub fn new(
+    pub fn new_eth(
         address: String,
         added_at: i64,
-        chain: Chain,
         signature: String,
         role: Role,
         // nonce: [u8; 32],
@@ -213,7 +244,24 @@ impl Address {
         Self {
             address,
             added_at,
-            chain,
+            chain: Chain::EVM,
+            signature,
+            role,
+            // nonce,
+        }
+    }
+
+    pub fn new_sol(
+        address: String,
+        added_at: i64,
+        signature: String,
+        role: Role,
+        // nonce: [u8; 32],
+    ) -> Self {
+        Self {
+            address,
+            added_at,
+            chain: Chain::Solana,
             signature,
             role,
             // nonce,
@@ -222,7 +270,7 @@ impl Address {
 }
 
 #[account]
-pub struct DID {
+pub struct Did {
     pub did: String,
     pub created_at: i64,
     pub updated_at: i64,
@@ -230,15 +278,15 @@ pub struct DID {
     pub addresses: Vec<Address>,
 }
 
-impl DID {
+impl Did {
     const LEN_WITHOUT_ADDRESS: usize =
         DISCRIMINATOR_LENGTH + DID_LENGTH + I64_LENGTH + I64_LENGTH + U8_LENGTH;
 
-    pub fn new(did: String, created_at: i64, updated_at: i64, controller: Address) -> Self {
+    pub fn new(did: String, clock: Clock, controller: Address) -> Self {
         Self {
             did,
-            created_at,
-            updated_at,
+            created_at: clock.unix_timestamp,
+            updated_at: clock.unix_timestamp,
             controller_multisig_threshold: 1,
             addresses: vec![controller],
         }
