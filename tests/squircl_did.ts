@@ -81,7 +81,6 @@ describe("squircl_identity", () => {
         didStr,
         base58.encode(arrayify("0x" + eth_address)),
         base58.encode(signature),
-        base58.encode(actual_message),
         recoveryId
       )
       .accounts({

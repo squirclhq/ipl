@@ -3,16 +3,36 @@
 use anchor_lang::{
     prelude::*,
     solana_program::{
-        ed25519_program::ID as ED25519_ID,
-        entrypoint::ProgramResult,
-        hash::hash,
-        instruction::Instruction,
+        ed25519_program::ID as ED25519_ID, instruction::Instruction, keccak,
         secp256k1_program::ID as SECP256K1_ID,
-        sysvar::instructions::{load_instruction_at_checked, ID as IX_ID},
     },
 };
 
-use crate::IdentityErrorCode;
+use crate::errors::IdentityErrorCode;
+
+pub fn get_ethereum_message_hash(message: String) -> Vec<u8> {
+    let msg_data = [
+        "\x19Ethereum Signed Message:\n".as_bytes(),
+        message.len().to_string().as_bytes(),
+        message.as_ref(),
+    ]
+    .concat();
+
+    let hash = keccak::hash(&msg_data);
+
+    [
+        "\x19Ethereum Signed Message:\n32".as_bytes(),
+        &hash.to_bytes(),
+    ]
+    .concat()
+}
+
+pub fn get_default_create_message(address: String) -> String {
+    format!(
+        "I am creating a new Squircl DID with the address {}",
+        address,
+    )
+}
 
 /// Verify Secp256k1Program instruction fields
 pub fn verify_secp256k1_ix(
