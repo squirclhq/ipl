@@ -77,12 +77,11 @@ describe("squircl_identity", () => {
     // console.log("digest", msg_digest);
 
     const sig = await program.methods
-      .createDidEvm(
-        didStr,
-        base58.encode(arrayify("0x" + eth_address)),
-        base58.encode(signature),
-        recoveryId
-      )
+      .createDidEvm(didStr, {
+        addressBase58: base58.encode(arrayify("0x" + eth_address)),
+        sigBase58: base58.encode(signature),
+        recoveryId: recoveryId,
+      })
       .accounts({
         did: didAccount,
         ixSysvar: anchor.web3.SYSVAR_INSTRUCTIONS_PUBKEY,
@@ -101,16 +100,17 @@ describe("squircl_identity", () => {
     const didAccountData = await program.account.did.fetch(didAccount);
 
     expect(didAccountData.did).to.equal(didStr);
-    expect(didAccountData.controllerMultisigThreshold).to.equal(1);
-    expect(didAccountData.addresses[0].address).to.equal(
+    expect(didAccountData.ethAddresses.length).to.equal(1);
+    expect(didAccountData.ethAddresses[0].address).to.equal(
       eth_signer.address.toLowerCase()
     );
-    expect(didAccountData.addresses[0].signature).to.equal(
+    expect(didAccountData.ethAddresses[0].signature).to.equal(
       hexlify(full_sig_bytes)
     );
-
-    expect(didAccountData.addresses[0].chain).to.deep.equal({ evm: {} });
-    expect(didAccountData.addresses[0].role).to.deep.equal({ controller: {} });
+    expect(didAccountData.ethAddresses[0].role).to.deep.equal({
+      controller: {},
+    });
+    expect(didAccountData.solAddresses).to.deep.equal([]);
   });
 
   it("should create a new did document with a solana wallet", async () => {
@@ -126,12 +126,10 @@ describe("squircl_identity", () => {
     const signature = nacl.sign.detached(messageEncoded, keypair.secretKey);
 
     const sig = await program.methods
-      .createDidSol(
-        didStr,
-        bs58.encode(keypair.publicKey.toBuffer()),
-        bs58.encode(signature),
-        bs58.encode(messageEncoded)
-      )
+      .createDidSol(didStr, {
+        addressBase58: bs58.encode(keypair.publicKey.toBuffer()),
+        sigBase58: bs58.encode(signature),
+      })
       .accounts({
         did: didAccount,
         ixSysvar: anchor.web3.SYSVAR_INSTRUCTIONS_PUBKEY,
@@ -149,14 +147,16 @@ describe("squircl_identity", () => {
     const didAccountData = await program.account.did.fetch(didAccount);
 
     expect(didAccountData.did).to.equal(didStr);
-    expect(didAccountData.controllerMultisigThreshold).to.equal(1);
-    expect(didAccountData.addresses[0].address).to.equal(
+    expect(didAccountData.solAddresses.length).to.equal(1);
+    expect(didAccountData.solAddresses[0].address).to.equal(
       keypair.publicKey.toBase58()
     );
-    expect(didAccountData.addresses[0].signature).to.equal(
+    expect(didAccountData.solAddresses[0].signature).to.equal(
       bs58.encode(signature)
     );
-    expect(didAccountData.addresses[0].chain).to.deep.equal({ solana: {} });
-    expect(didAccountData.addresses[0].role).to.deep.equal({ controller: {} });
+    expect(didAccountData.solAddresses[0].role).to.deep.equal({
+      controller: {},
+    });
+    expect(didAccountData.ethAddresses).to.deep.equal([]);
   });
 });

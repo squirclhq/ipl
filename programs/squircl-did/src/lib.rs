@@ -7,6 +7,7 @@ pub mod state;
 pub mod utils;
 
 use instructions::*;
+use state::*;
 
 declare_id!("AF4ChbnZ2DfGTHdNxHkmdrZkvRBbHYq1WcmnLiFRxwkZ");
 
@@ -18,20 +19,16 @@ pub mod squircl_did {
     pub fn create_did_evm(
         ctx: Context<CreateDIDEVM>,
         did_str: String,
-        eth_address_base58: String,
-        sig_base58: String,
-        recovery_id: u8,
+        ethSig: EthSig,
     ) -> Result<()> {
-        create_did_evm_ix(ctx, did_str, eth_address_base58, sig_base58, recovery_id)
+        create_did_evm_ix(ctx, did_str, ethSig)
     }
 
     pub fn create_did_sol(
         ctx: Context<CreateDIDSOL>,
         did_str: String,
-        sol_address_base58: String,
-        sig_base58: String,
-        msg_base58: String,
+        solSig: SolSig,
     ) -> Result<()> {
-        create_did_sol_ix(ctx, did_str, sol_address_base58, sig_base58, msg_base58)
+        create_did_sol_ix(ctx, did_str, solSig)
     }
 }

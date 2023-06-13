@@ -1,18 +1,12 @@
-use crate::constants::{
-    DID_LENGTH, DISCRIMINATOR_LENGTH, ETH_ADDRESS_LENGTH, ETH_SIGNATURE_LENGTH, I64_LENGTH,
-    SOL_ADDRESS_LENGTH, SOL_SIGNATURE_LENGTH, U8_LENGTH,
+use crate::{
+    constants::{
+        DID_LENGTH, DISCRIMINATOR_LENGTH, ETH_ADDRESS_LENGTH, ETH_SIGNATURE_LENGTH, I64_LENGTH,
+        SOL_ADDRESS_LENGTH, SOL_SIGNATURE_LENGTH, U8_LENGTH,
+    },
+    errors::IdentityErrorCode,
+    utils::{get_ethereum_message_hash, verify_ed25519_ix, verify_secp256k1_ix},
 };
-use anchor_lang::prelude::*;
-
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
-pub enum Chain {
-    Solana = 0,
-    EVM = 1,
-}
-
-impl Chain {
-    pub const LEN: usize = U8_LENGTH;
-}
+use anchor_lang::{prelude::*, solana_program::instruction::Instruction};
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
 pub enum Role {
@@ -30,19 +24,16 @@ impl Role {
 pub struct Address {
     pub address: String,
     pub added_at: i64,
-    pub chain: Chain,
     pub signature: String,
     pub role: Role,
     // pub nonce: [u8; 32],
 }
 
 impl Address {
-    pub const ETH_LEN: usize =
-        ETH_ADDRESS_LENGTH + I64_LENGTH + Chain::LEN + ETH_SIGNATURE_LENGTH + Role::LEN;
+    pub const ETH_LEN: usize = ETH_ADDRESS_LENGTH + I64_LENGTH + ETH_SIGNATURE_LENGTH + Role::LEN;
     // + U8_LENGTH * 32;
 
-    pub const SOL_LEN: usize =
-        SOL_ADDRESS_LENGTH + I64_LENGTH + Chain::LEN + SOL_SIGNATURE_LENGTH + Role::LEN;
+    pub const SOL_LEN: usize = SOL_ADDRESS_LENGTH + I64_LENGTH + SOL_SIGNATURE_LENGTH + Role::LEN;
     // + U8_LENGTH * 32;
 
     pub fn new_eth(
@@ -55,7 +46,6 @@ impl Address {
         Self {
             address,
             added_at,
-            chain: Chain::EVM,
             signature,
             role,
             // nonce,
@@ -72,7 +62,6 @@ impl Address {
         Self {
             address,
             added_at,
-            chain: Chain::Solana,
             signature,
             role,
             // nonce,
@@ -85,21 +74,118 @@ pub struct Did {
     pub did: String,
     pub created_at: i64,
     pub updated_at: i64,
-    pub controller_multisig_threshold: u8, // Default 1
-    pub addresses: Vec<Address>,
+    pub eth_addresses: Vec<Address>,
+    pub sol_addresses: Vec<Address>,
 }
 
 impl Did {
     pub const LEN_WITHOUT_ADDRESS: usize =
         DISCRIMINATOR_LENGTH + DID_LENGTH + I64_LENGTH + I64_LENGTH + U8_LENGTH;
 
-    pub fn new(did: String, clock: Clock, controller: Address) -> Self {
+    pub fn new_eth(did: String, clock: Clock, controller: Address) -> Self {
         Self {
             did,
             created_at: clock.unix_timestamp,
             updated_at: clock.unix_timestamp,
-            controller_multisig_threshold: 1,
-            addresses: vec![controller],
+            eth_addresses: vec![controller],
+            sol_addresses: vec![],
         }
+    }
+
+    pub fn new_sol(did: String, clock: Clock, controller: Address) -> Self {
+        Self {
+            did,
+            created_at: clock.unix_timestamp,
+            updated_at: clock.unix_timestamp,
+            eth_addresses: vec![],
+            sol_addresses: vec![controller],
+        }
+    }
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+pub struct EthSig {
+    pub address_base58: String,
+    pub sig_base58: String,
+    pub recovery_id: u8,
+}
+
+impl EthSig {
+    pub fn get_eth_address_vec(&self) -> Vec<u8> {
+        bs58::decode(self.address_base58.clone())
+            .into_vec()
+            .unwrap()
+    }
+
+    pub fn get_sig_vec(&self) -> Vec<u8> {
+        bs58::decode(self.sig_base58.clone()).into_vec().unwrap()
+    }
+
+    pub fn get_eth_address_hex(&self) -> String {
+        format!("0x{}", hex::encode(self.get_eth_address_vec().as_slice()))
+    }
+
+    pub fn get_sig_hex(&self) -> String {
+        format!(
+            "0x{}",
+            hex::encode([self.get_sig_vec().as_slice(), &[self.recovery_id + 27]].concat())
+        )
+    }
+
+    pub fn verify(&self, ix: &Instruction, msg_string: String) -> Result<()> {
+        let eth_address_binding = self.get_eth_address_vec();
+        let eth_address = eth_address_binding.as_slice();
+        let sig_binding = self.get_sig_vec();
+        let sig = sig_binding.as_slice();
+        let msg_binding = get_ethereum_message_hash(msg_string);
+        let msg = msg_binding.as_slice();
+
+        match verify_secp256k1_ix(&ix, eth_address, &msg, sig, self.recovery_id) {
+            Ok(()) => {
+                msg!("signature verified");
+            }
+            Err(_) => {
+                msg!("signature not verified root");
+                return Err(IdentityErrorCode::InvalidSignature.into());
+            }
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+pub struct SolSig {
+    pub address_base58: String,
+    pub sig_base58: String,
+}
+
+impl SolSig {
+    pub fn get_sol_address_vec(&self) -> Vec<u8> {
+        bs58::decode(self.address_base58.clone())
+            .into_vec()
+            .unwrap()
+    }
+    pub fn get_sig_vec(&self) -> Vec<u8> {
+        bs58::decode(self.sig_base58.clone()).into_vec().unwrap()
+    }
+    pub fn verify(&self, ix: &Instruction, msg_string: String) -> Result<()> {
+        let msg = msg_string.as_bytes();
+        let sol_address_binding = self.get_sol_address_vec();
+        let sol_address = sol_address_binding.as_slice();
+        let sig_binding = self.get_sig_vec();
+        let sig = sig_binding.as_slice();
+
+        match verify_ed25519_ix(&ix, sol_address, msg, sig) {
+            Ok(()) => {
+                msg!("signature verified");
+            }
+            Err(_) => {
+                msg!("signature not verified root");
+                return Err(IdentityErrorCode::InvalidSignature.into());
+            }
+        };
+
+        Ok(())
     }
 }
