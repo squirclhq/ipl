@@ -9,6 +9,7 @@ import { Transaction, Wallet, ethers } from "ethers";
 import { hexlify, arrayify } from "@ethersproject/bytes";
 import base58 from "bs58";
 import { expect, should } from "chai";
+import { signEthMessage } from "./utils/signatures";
 
 const generateRandomDID = () => {
   const randomBytes = crypto.randomBytes(24); // 24 bytes = 48 characters
@@ -47,38 +48,16 @@ describe("squircl_identity", () => {
 
     const didAccount = getDIDAccount(didStr);
 
-    const eth_signer = ethers.Wallet.createRandom();
+    const ethSigner = ethers.Wallet.createRandom();
 
-    const message = `I am creating a new Squircl DID with the address ${eth_signer.address.toLowerCase()}`;
+    const message = `I am creating a new Squircl DID with the address ${ethSigner.address.toLowerCase()}`;
 
-    // console.log(message);
-
-    const messageHash = ethers.hashMessage(message);
-
-    const messageHashBytes = arrayify(messageHash);
-
-    const full_sig = await eth_signer.signMessage(messageHashBytes);
-
-    const full_sig_bytes = arrayify(full_sig);
-
-    const signature = full_sig_bytes.slice(0, 64);
-    const recoveryId = full_sig_bytes[64] - 27;
-
-    const eth_address = ethers.computeAddress(eth_signer.publicKey).slice(2);
-
-    const msg_digest = arrayify(messageHash);
-
-    const actual_message = Buffer.concat([
-      Buffer.from("\x19Ethereum Signed Message:\n32"),
-      msg_digest,
-    ]);
-
-    // console.log("actual_message", actual_message);
-    // console.log("digest", msg_digest);
+    const { actual_message, signature, recoveryId, full_sig_bytes } =
+      await signEthMessage(message, ethSigner);
 
     const sig = await program.methods
       .createDidEvm(didStr, {
-        addressBase58: base58.encode(arrayify("0x" + eth_address)),
+        addressBase58: base58.encode(arrayify(ethSigner.address.toLowerCase())),
         sigBase58: base58.encode(signature),
         recoveryId: recoveryId,
       })
@@ -89,7 +68,7 @@ describe("squircl_identity", () => {
       })
       .preInstructions([
         anchor.web3.Secp256k1Program.createInstructionWithEthAddress({
-          ethAddress: eth_address,
+          ethAddress: ethSigner.address.toLowerCase().slice(2),
           message: actual_message,
           signature: signature,
           recoveryId: recoveryId,
@@ -97,12 +76,14 @@ describe("squircl_identity", () => {
       ])
       .rpc();
 
+    console.log("create did evm sig", sig);
+
     const didAccountData = await program.account.did.fetch(didAccount);
 
     expect(didAccountData.did).to.equal(didStr);
     expect(didAccountData.ethAddresses.length).to.equal(1);
     expect(didAccountData.ethAddresses[0].address).to.equal(
-      eth_signer.address.toLowerCase()
+      ethSigner.address.toLowerCase()
     );
     expect(didAccountData.ethAddresses[0].signature).to.equal(
       hexlify(full_sig_bytes)
@@ -144,6 +125,8 @@ describe("squircl_identity", () => {
       ])
       .rpc();
 
+    console.log("create did sol sig", sig);
+
     const didAccountData = await program.account.did.fetch(didAccount);
 
     expect(didAccountData.did).to.equal(didStr);
@@ -158,5 +141,85 @@ describe("squircl_identity", () => {
       controller: {},
     });
     expect(didAccountData.ethAddresses).to.deep.equal([]);
+  });
+
+  it("should not create a did if signature is invalid, eth", async () => {
+    const didStr = generateRandomDID();
+
+    const didAccount = getDIDAccount(didStr);
+
+    const ethSigner = ethers.Wallet.createRandom();
+
+    const message = "random fake message, will cause invalid signature";
+
+    const { actual_message, signature, recoveryId, full_sig_bytes } =
+      await signEthMessage(message, ethSigner);
+
+    try {
+      await program.methods
+        .createDidEvm(didStr, {
+          addressBase58: base58.encode(
+            arrayify(ethSigner.address.toLowerCase())
+          ),
+          sigBase58: base58.encode(signature),
+          recoveryId: recoveryId,
+        })
+        .accounts({
+          did: didAccount,
+          ixSysvar: anchor.web3.SYSVAR_INSTRUCTIONS_PUBKEY,
+          payer: payer.publicKey,
+        })
+        .preInstructions([
+          anchor.web3.Secp256k1Program.createInstructionWithEthAddress({
+            ethAddress: ethSigner.address.toLowerCase().slice(2),
+            message: actual_message,
+            signature: signature,
+            recoveryId: recoveryId,
+          }),
+        ])
+        .rpc();
+    } catch (e) {
+      expect(e.toString()).to.equal(
+        "AnchorError occurred. Error Code: InvalidSignature. Error Number: 6001. Error Message: Invalid signature."
+      );
+    }
+  });
+
+  it("should not create a did if signature is invalid, sol", async () => {
+    const didStr = generateRandomDID();
+
+    const didAccount = getDIDAccount(didStr);
+
+    const keypair = anchor.web3.Keypair.generate();
+
+    const message = "random fake message, will cause invalid signature";
+    const messageEncoded = Uint8Array.from(Buffer.from(message));
+
+    const signature = nacl.sign.detached(messageEncoded, keypair.secretKey);
+
+    try {
+      await program.methods
+        .createDidSol(didStr, {
+          addressBase58: bs58.encode(keypair.publicKey.toBuffer()),
+          sigBase58: bs58.encode(signature),
+        })
+        .accounts({
+          did: didAccount,
+          ixSysvar: anchor.web3.SYSVAR_INSTRUCTIONS_PUBKEY,
+          payer: payer.publicKey,
+        })
+        .preInstructions([
+          anchor.web3.Ed25519Program.createInstructionWithPublicKey({
+            publicKey: keypair.publicKey.toBytes(),
+            message: messageEncoded,
+            signature: signature,
+          }),
+        ])
+        .rpc();
+    } catch (e) {
+      expect(e.toString()).to.equal(
+        "AnchorError occurred. Error Code: InvalidSignature. Error Number: 6001. Error Message: Invalid signature."
+      );
+    }
   });
 });
