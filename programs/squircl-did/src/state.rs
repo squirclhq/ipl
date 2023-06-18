@@ -101,6 +101,16 @@ impl Did {
             sol_addresses: vec![controller],
         }
     }
+
+    pub fn add_address_sol(&mut self, clock: Clock, address: Address) {
+        self.updated_at = clock.unix_timestamp;
+        self.sol_addresses.push(address);
+    }
+
+    pub fn add_address_eth(&mut self, clock: Clock, address: Address) {
+        self.updated_at = clock.unix_timestamp;
+        self.eth_addresses.push(address);
+    }
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]

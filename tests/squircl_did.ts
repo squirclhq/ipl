@@ -10,6 +10,7 @@ import { hexlify, arrayify } from "@ethersproject/bytes";
 import base58 from "bs58";
 import { expect, should } from "chai";
 import { signEthMessage } from "./utils/signatures";
+import { createDIDEVM, createDIDSOL } from "./utils/instructions";
 
 const generateRandomDID = () => {
   const randomBytes = crypto.randomBytes(24); // 24 bytes = 48 characters
@@ -55,26 +56,16 @@ describe("squircl_identity", () => {
     const { actual_message, signature, recoveryId, full_sig_bytes } =
       await signEthMessage(message, ethSigner);
 
-    const sig = await program.methods
-      .createDidEvm(didStr, {
-        addressBase58: base58.encode(arrayify(ethSigner.address.toLowerCase())),
-        sigBase58: base58.encode(signature),
-        recoveryId: recoveryId,
-      })
-      .accounts({
-        did: didAccount,
-        ixSysvar: anchor.web3.SYSVAR_INSTRUCTIONS_PUBKEY,
-        payer: payer.publicKey,
-      })
-      .preInstructions([
-        anchor.web3.Secp256k1Program.createInstructionWithEthAddress({
-          ethAddress: ethSigner.address.toLowerCase().slice(2),
-          message: actual_message,
-          signature: signature,
-          recoveryId: recoveryId,
-        }),
-      ])
-      .rpc();
+    const sig = await createDIDEVM(
+      program,
+      didStr,
+      ethSigner,
+      signature,
+      recoveryId,
+      didAccount,
+      actual_message,
+      payer
+    );
 
     console.log("create did evm sig", sig);
 
@@ -106,24 +97,15 @@ describe("squircl_identity", () => {
 
     const signature = nacl.sign.detached(messageEncoded, keypair.secretKey);
 
-    const sig = await program.methods
-      .createDidSol(didStr, {
-        addressBase58: bs58.encode(keypair.publicKey.toBuffer()),
-        sigBase58: bs58.encode(signature),
-      })
-      .accounts({
-        did: didAccount,
-        ixSysvar: anchor.web3.SYSVAR_INSTRUCTIONS_PUBKEY,
-        payer: payer.publicKey,
-      })
-      .preInstructions([
-        anchor.web3.Ed25519Program.createInstructionWithPublicKey({
-          publicKey: keypair.publicKey.toBytes(),
-          message: messageEncoded,
-          signature: signature,
-        }),
-      ])
-      .rpc();
+    const sig = await createDIDSOL(
+      program,
+      didStr,
+      keypair,
+      signature,
+      messageEncoded,
+      didAccount,
+      payer
+    );
 
     console.log("create did sol sig", sig);
 
@@ -152,32 +134,22 @@ describe("squircl_identity", () => {
 
     const message = "random fake message, will cause invalid signature";
 
-    const { actual_message, signature, recoveryId, full_sig_bytes } =
-      await signEthMessage(message, ethSigner);
+    const { actual_message, signature, recoveryId } = await signEthMessage(
+      message,
+      ethSigner
+    );
 
     try {
-      await program.methods
-        .createDidEvm(didStr, {
-          addressBase58: base58.encode(
-            arrayify(ethSigner.address.toLowerCase())
-          ),
-          sigBase58: base58.encode(signature),
-          recoveryId: recoveryId,
-        })
-        .accounts({
-          did: didAccount,
-          ixSysvar: anchor.web3.SYSVAR_INSTRUCTIONS_PUBKEY,
-          payer: payer.publicKey,
-        })
-        .preInstructions([
-          anchor.web3.Secp256k1Program.createInstructionWithEthAddress({
-            ethAddress: ethSigner.address.toLowerCase().slice(2),
-            message: actual_message,
-            signature: signature,
-            recoveryId: recoveryId,
-          }),
-        ])
-        .rpc();
+      await createDIDEVM(
+        program,
+        didStr,
+        ethSigner,
+        signature,
+        recoveryId,
+        didAccount,
+        actual_message,
+        payer
+      );
     } catch (e) {
       expect(e.toString()).to.equal(
         "AnchorError occurred. Error Code: InvalidSignature. Error Number: 6001. Error Message: Invalid signature."
@@ -198,28 +170,125 @@ describe("squircl_identity", () => {
     const signature = nacl.sign.detached(messageEncoded, keypair.secretKey);
 
     try {
-      await program.methods
-        .createDidSol(didStr, {
-          addressBase58: bs58.encode(keypair.publicKey.toBuffer()),
-          sigBase58: bs58.encode(signature),
-        })
-        .accounts({
-          did: didAccount,
-          ixSysvar: anchor.web3.SYSVAR_INSTRUCTIONS_PUBKEY,
-          payer: payer.publicKey,
-        })
-        .preInstructions([
-          anchor.web3.Ed25519Program.createInstructionWithPublicKey({
-            publicKey: keypair.publicKey.toBytes(),
-            message: messageEncoded,
-            signature: signature,
-          }),
-        ])
-        .rpc();
+      await createDIDSOL(
+        program,
+        didStr,
+        keypair,
+        signature,
+        messageEncoded,
+        didAccount,
+        payer
+      );
     } catch (e) {
       expect(e.toString()).to.equal(
         "AnchorError occurred. Error Code: InvalidSignature. Error Number: 6001. Error Message: Invalid signature."
       );
     }
+  });
+
+  it("can add a new eth and sol address to an existing did with eth controller", async () => {
+    const didStr = generateRandomDID();
+
+    const didAccount = getDIDAccount(didStr);
+
+    const ethSigner = ethers.Wallet.createRandom();
+
+    const message = `I am creating a new Squircl DID with the address ${ethSigner.address.toLowerCase()}`;
+
+    const { actual_message, signature, recoveryId } = await signEthMessage(
+      message,
+      ethSigner
+    );
+
+    await createDIDEVM(
+      program,
+      didStr,
+      ethSigner,
+      signature,
+      recoveryId,
+      didAccount,
+      actual_message,
+      payer
+    );
+
+    const newEthSigner = ethers.Wallet.createRandom();
+
+    const newAddressMessageAsNewAddress = `I am adding myself to the Squircl DID with the address ${newEthSigner.address.toLowerCase()}`;
+    const newAddressMessageAsController = `I am adding ${newEthSigner.address.toLowerCase()} to the Squircl DID with the address ${ethSigner.address.toLowerCase()} as a controller`;
+
+    const {
+      actual_message: newAddressActualMessage,
+      signature: newAddressSignature,
+      recoveryId: newAddressRecoveryId,
+      full_sig_bytes: newAddressFullSigBytes,
+    } = await signEthMessage(newAddressMessageAsNewAddress, newEthSigner);
+
+    const {
+      actual_message: controllerActualMessage,
+      signature: controllerSignature,
+      recoveryId: controllerRecoveryId,
+    } = await signEthMessage(newAddressMessageAsController, ethSigner);
+
+    // @ts-ignore
+    // const sig = await program.methods.addAddressEvm(
+    //   didStr,
+    //   {
+    //     addressBase58: base58.encode(
+    //       arrayify(newEthSigner.address.toLowerCase())
+    //     ),
+    //     sigBase58: base58.encode(newAddressSignature),
+    //     recoveryId: newAddressRecoveryId,
+    //   },
+    //   {
+    //    sig: {
+
+    //    }
+    //   }
+    // );
+
+    const sig = await program.methods
+      .addAddressEvm(
+        didStr,
+        {
+          addressBase58: base58.encode(
+            arrayify(newEthSigner.address.toLowerCase())
+          ),
+          sigBase58: base58.encode(newAddressSignature),
+          recoveryId: newAddressRecoveryId,
+        },
+        {
+          eth: {
+            ethSig: {
+              addressBase58: base58.encode(
+                arrayify(ethSigner.address.toLowerCase())
+              ),
+              sigBase58: base58.encode(controllerSignature),
+              recoveryId: controllerRecoveryId,
+            },
+          },
+        }
+      )
+      .accounts({
+        did: didAccount,
+        ixSysvar: anchor.web3.SYSVAR_INSTRUCTIONS_PUBKEY,
+        payer: payer.publicKey,
+      })
+      .preInstructions([
+        anchor.web3.Secp256k1Program.createInstructionWithEthAddress({
+          ethAddress: newEthSigner.address.toLowerCase().slice(2),
+          message: newAddressActualMessage,
+          signature: newAddressSignature,
+          recoveryId: newAddressRecoveryId,
+        }),
+        anchor.web3.Secp256k1Program.createInstructionWithEthAddress({
+          ethAddress: ethSigner.address.toLowerCase().slice(2),
+          message: controllerActualMessage,
+          signature: controllerSignature,
+          recoveryId: controllerRecoveryId,
+        }),
+      ])
+      .rpc();
+
+    console.log("add address sig", sig);
   });
 });

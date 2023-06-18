@@ -34,6 +34,20 @@ pub fn get_default_create_message(address: String) -> String {
     )
 }
 
+pub fn get_default_add_message_as_controller(controller: String, new_address: String) -> String {
+    format!(
+        "I am adding {} to the Squircl DID with the address {} as a controller",
+        new_address, controller
+    )
+}
+
+pub fn get_default_add_message_as_new_address(new_address: String) -> String {
+    format!(
+        "I am adding myself to the Squircl DID with the address {}",
+        new_address
+    )
+}
+
 /// Verify Secp256k1Program instruction fields
 pub fn verify_secp256k1_ix(
     ix: &Instruction,
