@@ -8,4 +8,8 @@ pub enum IdentityErrorCode {
     InvalidSignature,
     #[msg("Invalid addres")]
     InvalidAddress,
+    #[msg("Address already exists")]
+    AddressAlreadyExists,
+    #[msg("Address doesn't have enough permissions")]
+    AddressDoesntHaveEnoughPermissions,
 }

@@ -10,7 +10,13 @@ import { hexlify, arrayify } from "@ethersproject/bytes";
 import base58 from "bs58";
 import { expect, should } from "chai";
 import { signEthMessage } from "./utils/signatures";
-import { createDIDEVM, createDIDSOL } from "./utils/instructions";
+import {
+  addAddressEVMwithEVMController,
+  addAddressEVMwithSOLController,
+  addAddressSOLWithEVMController,
+  createDIDEVM,
+  createDIDSOL,
+} from "./utils/instructions";
 
 const generateRandomDID = () => {
   const randomBytes = crypto.randomBytes(24); // 24 bytes = 48 characters
@@ -26,7 +32,7 @@ describe("squircl_identity", () => {
 
   const program = anchor.workspace.SquirclDid as Program<SquirclDid>;
 
-  const payer = anchor.workspace.SquirclIdentity.provider.wallet;
+  const payer = anchor.workspace.SquirclDid.provider.wallet;
 
   const getDIDAccount = (didStr: string) => {
     const hexString = crypto
@@ -229,66 +235,151 @@ describe("squircl_identity", () => {
       recoveryId: controllerRecoveryId,
     } = await signEthMessage(newAddressMessageAsController, ethSigner);
 
-    // @ts-ignore
-    // const sig = await program.methods.addAddressEvm(
-    //   didStr,
-    //   {
-    //     addressBase58: base58.encode(
-    //       arrayify(newEthSigner.address.toLowerCase())
-    //     ),
-    //     sigBase58: base58.encode(newAddressSignature),
-    //     recoveryId: newAddressRecoveryId,
-    //   },
-    //   {
-    //    sig: {
-
-    //    }
-    //   }
-    // );
-
-    const sig = await program.methods
-      .addAddressEvm(
-        didStr,
-        {
-          addressBase58: base58.encode(
-            arrayify(newEthSigner.address.toLowerCase())
-          ),
-          sigBase58: base58.encode(newAddressSignature),
-          recoveryId: newAddressRecoveryId,
-        },
-        {
-          eth: {
-            ethSig: {
-              addressBase58: base58.encode(
-                arrayify(ethSigner.address.toLowerCase())
-              ),
-              sigBase58: base58.encode(controllerSignature),
-              recoveryId: controllerRecoveryId,
-            },
-          },
-        }
-      )
-      .accounts({
-        did: didAccount,
-        ixSysvar: anchor.web3.SYSVAR_INSTRUCTIONS_PUBKEY,
-        payer: payer.publicKey,
-      })
-      .preInstructions([
-        anchor.web3.Secp256k1Program.createInstructionWithEthAddress({
-          ethAddress: newEthSigner.address.toLowerCase().slice(2),
-          message: newAddressActualMessage,
-          signature: newAddressSignature,
-          recoveryId: newAddressRecoveryId,
-        }),
-        anchor.web3.Secp256k1Program.createInstructionWithEthAddress({
-          ethAddress: ethSigner.address.toLowerCase().slice(2),
-          message: controllerActualMessage,
-          signature: controllerSignature,
-          recoveryId: controllerRecoveryId,
-        }),
-      ])
-      .rpc();
+    const sig = await addAddressEVMwithEVMController(
+      program,
+      didStr,
+      didAccount,
+      payer,
+      ethSigner,
+      newEthSigner,
+      controllerSignature,
+      controllerRecoveryId,
+      newAddressSignature,
+      newAddressRecoveryId,
+      controllerActualMessage,
+      newAddressActualMessage
+    );
 
     console.log("add address sig", sig);
+
+    const didAccountData = await program.account.did.fetch(didAccount);
+
+    expect(didAccountData.did).to.equal(didStr);
+    expect(didAccountData.ethAddresses.length).to.equal(2);
+    expect(didAccountData.ethAddresses[1].address).to.equal(
+      newEthSigner.address.toLowerCase()
+    );
+    expect(didAccountData.ethAddresses[1].signature).to.equal(
+      hexlify(newAddressFullSigBytes)
+    );
+
+    expect(didAccountData.ethAddresses[1].role).to.deep.equal({
+      admin: {},
+    });
+    expect(didAccountData.solAddresses).to.deep.equal([]);
+
+    const keypair = anchor.web3.Keypair.generate();
+
+    const newAddressMessageAsNewAddressSOL = `I am adding myself to the Squircl DID with the address ${keypair.publicKey.toBase58()}`;
+    const newAddressMessageAsControllerSOL = `I am adding ${keypair.publicKey.toBase58()} to the Squircl DID with the address ${ethSigner.address.toLocaleLowerCase()} as a controller`;
+
+    const newMessageEncoded = Uint8Array.from(
+      Buffer.from(newAddressMessageAsNewAddressSOL)
+    );
+
+    const {
+      actual_message: controllerActualMessageSOL,
+      signature: controllerSignatureSOL,
+      recoveryId: controllerRecoveryIdSOL,
+    } = await signEthMessage(newAddressMessageAsControllerSOL, ethSigner);
+
+    const newAddressSOLSignature = nacl.sign.detached(
+      newMessageEncoded,
+      keypair.secretKey
+    );
+
+    const sigSOL = await addAddressSOLWithEVMController(
+      program,
+      didStr,
+      didAccount,
+      payer,
+      ethSigner,
+      controllerSignatureSOL,
+      controllerRecoveryIdSOL,
+      controllerActualMessageSOL,
+      keypair.publicKey,
+      newAddressSOLSignature,
+      newMessageEncoded
+    );
+
+    console.log("add address sig", sigSOL);
+
+    const didAccountDataSOL = await program.account.did.fetch(didAccount);
+
+    expect(didAccountDataSOL.did).to.equal(didStr);
+    expect(didAccountDataSOL.solAddresses.length).to.equal(1);
+    expect(didAccountDataSOL.solAddresses[0].address).to.equal(
+      keypair.publicKey.toBase58()
+    );
+    expect(didAccountDataSOL.solAddresses[0].signature).to.equal(
+      bs58.encode(newAddressSOLSignature)
+    );
+    expect(didAccountDataSOL.solAddresses[0].role).to.deep.equal({
+      admin: {},
+    });
+  });
+
+  it("can add a new eth and sol address to an existing did with sol controller", async () => {
+    const didStr = generateRandomDID();
+
+    const didAccount = getDIDAccount(didStr);
+
+    const controllerKeypair = anchor.web3.Keypair.generate();
+
+    const message = `I am creating a new Squircl DID with the address ${controllerKeypair.publicKey.toBase58()}`;
+
+    const messageEncoded = Uint8Array.from(Buffer.from(message));
+
+    const controllerSignature = nacl.sign.detached(
+      messageEncoded,
+      controllerKeypair.secretKey
+    );
+
+    await createDIDSOL(
+      program,
+      didStr,
+      controllerKeypair,
+      controllerSignature,
+      messageEncoded,
+      didAccount,
+      payer
+    );
+
+    const newEthSigner = ethers.Wallet.createRandom();
+
+    const newAddressMessageAsNewAddress = `I am adding myself to the Squircl DID with the address ${newEthSigner.address.toLowerCase()}`;
+    const newAddressMessageAsController = `I am adding ${newEthSigner.address.toLowerCase()} to the Squircl DID with the address ${controllerKeypair.publicKey.toBase58()} as a controller`;
+
+    const newAddressMessageAsControllerEncoded = Uint8Array.from(
+      Buffer.from(newAddressMessageAsController)
+    );
+
+    const controllerSignatureEVM = nacl.sign.detached(
+      newAddressMessageAsControllerEncoded,
+      controllerKeypair.secretKey
+    );
+
+    const {
+      actual_message: newAddressActualMessage,
+      signature: newAddressSignature,
+      recoveryId: newAddressRecoveryId,
+      full_sig_bytes: newAddressFullSigBytes,
+    } = await signEthMessage(newAddressMessageAsNewAddress, newEthSigner);
+
+    const sigEVM = await addAddressEVMwithSOLController(
+      program,
+      didStr,
+      didAccount,
+      payer,
+      controllerKeypair.publicKey,
+      controllerSignatureEVM,
+      newAddressMessageAsControllerEncoded,
+      newEthSigner,
+      newAddressSignature,
+      newAddressRecoveryId,
+      newAddressActualMessage
+    );
+
+    console.log("add address sig", sigEVM);
   });
 });

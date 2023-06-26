@@ -199,3 +199,9 @@ impl SolSig {
         Ok(())
     }
 }
+
+#[derive(AnchorSerialize, AnchorDeserialize)]
+pub enum Sig {
+    Eth { eth_sig: EthSig },
+    Sol { sol_sig: SolSig },
+}

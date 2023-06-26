@@ -1,4 +1,4 @@
-use crate::state::{Address, Did, EthSig, Role, SolSig};
+use crate::state::{Address, Did, Role, Sig};
 use crate::utils::get_default_create_message;
 use anchor_lang::{
     prelude::*,
@@ -9,73 +9,59 @@ use anchor_lang::{
     },
 };
 
-pub fn create_did_evm_ix(
-    ctx: Context<CreateDIDEVM>,
-    did_str: String,
-    eth_sig: EthSig,
-) -> Result<()> {
+pub fn create_did_ix(ctx: Context<CreateDID>, did_str: String, sig: Sig) -> Result<()> {
     let did = &mut ctx.accounts.did;
 
     let clock: Clock = Clock::get()?;
 
     let ix: Instruction = load_instruction_at_checked(0, &ctx.accounts.ix_sysvar)?;
 
-    let eth_address_hex = eth_sig.get_eth_address_hex();
+    match sig {
+        Sig::Eth { eth_sig } => {
+            let eth_address_hex = eth_sig.get_eth_address_hex();
 
-    let new_did_message = get_default_create_message(eth_address_hex.clone());
+            let new_did_message = get_default_create_message(eth_address_hex.clone());
 
-    eth_sig.verify(&ix, new_did_message)?;
+            eth_sig.verify(&ix, new_did_message)?;
 
-    let sig_hex = eth_sig.get_sig_hex();
+            let sig_hex = eth_sig.get_sig_hex();
 
-    did.set_inner(Did::new_eth(
-        did_str,
-        clock.clone(),
-        Address::new_eth(
-            eth_address_hex,
-            clock.unix_timestamp,
-            sig_hex,
-            Role::Controller,
-        ),
-    ));
+            did.set_inner(Did::new_eth(
+                did_str,
+                clock.clone(),
+                Address::new_eth(
+                    eth_address_hex,
+                    clock.unix_timestamp,
+                    sig_hex,
+                    Role::Controller,
+                ),
+            ));
+        }
 
-    Ok(())
-}
+        Sig::Sol { sol_sig } => {
+            let new_did_message = get_default_create_message(sol_sig.address_base58.clone());
 
-pub fn create_did_sol_ix(
-    ctx: Context<CreateDIDSOL>,
-    did_str: String,
-    sol_sig: SolSig,
-) -> Result<()> {
-    let ix: Instruction = load_instruction_at_checked(0, &ctx.accounts.ix_sysvar)?;
+            sol_sig.verify(&ix, new_did_message)?;
 
-    let did = &mut ctx.accounts.did;
-
-    let clock: Clock = Clock::get()?;
-
-    let new_did_message = get_default_create_message(sol_sig.address_base58.clone());
-
-    msg!("new_did_message: {:?}", new_did_message);
-
-    sol_sig.verify(&ix, new_did_message)?;
-
-    did.set_inner(Did::new_sol(
-        did_str,
-        clock.clone(),
-        Address::new_sol(
-            sol_sig.address_base58,
-            clock.unix_timestamp,
-            sol_sig.sig_base58,
-            Role::Controller,
-        ),
-    ));
+            did.set_inner(Did::new_sol(
+                did_str,
+                clock.clone(),
+                Address::new_sol(
+                    sol_sig.address_base58,
+                    clock.unix_timestamp,
+                    sol_sig.sig_base58,
+                    Role::Controller,
+                ),
+            ));
+        }
+    }
 
     Ok(())
 }
 
 #[derive(Accounts)]
 #[instruction(did_str: String)]
-pub struct CreateDIDEVM<'info> {
+pub struct CreateDID<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
 
@@ -94,7 +80,7 @@ pub struct CreateDIDEVM<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(did_str: String)]
+#[instruction(did_str: String, sig: Sig)]
 pub struct CreateDIDSOL<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -104,7 +90,10 @@ pub struct CreateDIDSOL<'info> {
         seeds = [&hash::hash(did_str.as_bytes()).to_bytes()],
         payer = payer,
         bump,
-        space = Did::LEN_WITHOUT_ADDRESS + Address::ETH_LEN
+        space = Did::LEN_WITHOUT_ADDRESS + match sig {
+            Sig::Eth { .. } => Address::ETH_LEN,
+            Sig::Sol { .. } => Address::SOL_LEN,
+        }
     )]
     pub did: Account<'info, Did>,
     pub system_program: Program<'info, System>,

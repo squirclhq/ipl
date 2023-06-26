@@ -16,37 +16,16 @@ pub mod squircl_did {
 
     use super::*;
 
-    pub fn create_did_evm(
-        ctx: Context<CreateDIDEVM>,
-        did_str: String,
-        eth_sig: EthSig,
-    ) -> Result<()> {
-        create_did_evm_ix(ctx, did_str, eth_sig)
+    pub fn create_did(ctx: Context<CreateDID>, did_str: String, sig: Sig) -> Result<()> {
+        create_did_ix(ctx, did_str, sig)
     }
 
-    pub fn create_did_sol(
-        ctx: Context<CreateDIDSOL>,
-        did_str: String,
-        sol_sig: SolSig,
-    ) -> Result<()> {
-        create_did_sol_ix(ctx, did_str, sol_sig)
-    }
-
-    pub fn add_address_evm(
-        ctx: Context<AddAddressEVM>,
+    pub fn add_addres(
+        ctx: Context<AddAddress>,
         _did_str: String,
-        new_address_sig: EthSig,
+        new_address_sig: Sig,
         controller_sig: Sig,
     ) -> Result<()> {
-        add_address_evm_ix(ctx, new_address_sig, controller_sig)
-    }
-
-    pub fn add_address_sol(
-        ctx: Context<AddAddressSol>,
-        _did_str: String,
-        new_address_sig: SolSig,
-        controller_sig: Sig,
-    ) -> Result<()> {
-        add_address_sol_ix(ctx, new_address_sig, controller_sig)
+        add_address_ix(ctx, new_address_sig, controller_sig)
     }
 }
