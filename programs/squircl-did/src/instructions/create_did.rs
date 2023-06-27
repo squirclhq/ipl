@@ -14,10 +14,11 @@ pub fn create_did_ix(ctx: Context<CreateDID>, did_str: String, sig: Sig) -> Resu
 
     let clock: Clock = Clock::get()?;
 
-    let ix: Instruction = load_instruction_at_checked(0, &ctx.accounts.ix_sysvar)?;
-
     match sig {
-        Sig::Eth { eth_sig } => {
+        Sig::Eth { eth_sig, index } => {
+            let ix: Instruction =
+                load_instruction_at_checked(index.try_into().unwrap(), &ctx.accounts.ix_sysvar)?;
+
             let eth_address_hex = eth_sig.get_eth_address_hex();
 
             let new_did_message = get_default_create_message(eth_address_hex.clone());
@@ -38,7 +39,10 @@ pub fn create_did_ix(ctx: Context<CreateDID>, did_str: String, sig: Sig) -> Resu
             ));
         }
 
-        Sig::Sol { sol_sig } => {
+        Sig::Sol { sol_sig, index } => {
+            let ix: Instruction =
+                load_instruction_at_checked(index.try_into().unwrap(), &ctx.accounts.ix_sysvar)?;
+
             let new_did_message = get_default_create_message(sol_sig.address_base58.clone());
 
             sol_sig.verify(&ix, new_did_message)?;

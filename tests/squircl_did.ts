@@ -14,6 +14,7 @@ import {
   addAddressEVMwithEVMController,
   addAddressEVMwithSOLController,
   addAddressSOLWithEVMController,
+  addAddrsesSOLWithSOLController,
   createDIDEVM,
   createDIDSOL,
 } from "./utils/instructions";
@@ -381,5 +382,71 @@ describe("squircl_identity", () => {
     );
 
     console.log("add address sig", sigEVM);
+
+    const didAccountData = await program.account.did.fetch(didAccount);
+
+    expect(didAccountData.did).to.equal(didStr);
+    expect(didAccountData.ethAddresses.length).to.equal(1);
+    expect(didAccountData.ethAddresses[0].address).to.equal(
+      newEthSigner.address.toLowerCase()
+    );
+    expect(didAccountData.ethAddresses[0].signature).to.equal(
+      hexlify(newAddressFullSigBytes)
+    );
+    expect(didAccountData.ethAddresses[0].role).to.deep.equal({
+      admin: {},
+    });
+
+    const keypair = anchor.web3.Keypair.generate();
+
+    const newAddressMessageAsNewAddressSOL = `I am adding myself to the Squircl DID with the address ${keypair.publicKey.toBase58()}`;
+    const newAddressMessageAsControllerSOL = `I am adding ${keypair.publicKey.toBase58()} to the Squircl DID with the address ${controllerKeypair.publicKey.toBase58()} as a controller`;
+
+    const newMessageEncoded = Uint8Array.from(
+      Buffer.from(newAddressMessageAsNewAddressSOL)
+    );
+
+    const newAddressSOLSignature = nacl.sign.detached(
+      newMessageEncoded,
+      keypair.secretKey
+    );
+
+    const newAddressMessageAsControllerSOLEncoded = Uint8Array.from(
+      Buffer.from(newAddressMessageAsControllerSOL)
+    );
+
+    const controllerSignatureSOL = nacl.sign.detached(
+      newAddressMessageAsControllerSOLEncoded,
+      controllerKeypair.secretKey
+    );
+
+    const sigSOL = await addAddrsesSOLWithSOLController(
+      program,
+      didStr,
+      didAccount,
+      payer,
+      controllerKeypair.publicKey,
+      controllerSignatureSOL,
+      newAddressMessageAsControllerSOLEncoded,
+      keypair.publicKey,
+      newAddressSOLSignature,
+      newMessageEncoded
+    );
+
+    console.log("add address sig", sigSOL);
+
+    const didAccountDataSOL = await program.account.did.fetch(didAccount);
+
+    expect(didAccountDataSOL.did).to.equal(didStr);
+    expect(didAccountDataSOL.solAddresses.length).to.equal(2);
+    expect(didAccountDataSOL.solAddresses[1].address).to.equal(
+      keypair.publicKey.toBase58()
+    );
+    expect(didAccountDataSOL.solAddresses[1].signature).to.equal(
+      bs58.encode(newAddressSOLSignature)
+    );
+    expect(didAccountDataSOL.solAddresses[1].role).to.deep.equal({
+      admin: {},
+    });
   });
 });

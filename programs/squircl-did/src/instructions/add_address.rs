@@ -21,16 +21,14 @@ pub fn add_address_ix(
 
     let clock: Clock = Clock::get()?;
 
-    let controller_address_sign_ix = load_instruction_at_checked(0, &ctx.accounts.ix_sysvar)?;
-
-    let new_address = if let Sig::Eth { eth_sig } = &new_address_sig {
+    let new_address = if let Sig::Eth { eth_sig, index: _ } = &new_address_sig {
         Address::new_eth(
             eth_sig.get_eth_address_hex(),
             clock.unix_timestamp,
             eth_sig.get_sig_hex(),
             Role::Admin,
         )
-    } else if let Sig::Sol { sol_sig } = &new_address_sig {
+    } else if let Sig::Sol { sol_sig, index: _ } = &new_address_sig {
         Address::new_sol(
             sol_sig.address_base58.clone(),
             clock.unix_timestamp,
@@ -42,7 +40,10 @@ pub fn add_address_ix(
     };
 
     match controller_sig {
-        Sig::Eth { eth_sig } => {
+        Sig::Eth { eth_sig, index } => {
+            let controller_address_sign_ix =
+                load_instruction_at_checked(index.try_into().unwrap(), &ctx.accounts.ix_sysvar)?;
+
             let add_message_as_controller = get_default_add_message_as_controller(
                 eth_sig.get_eth_address_hex(),
                 new_address.address.clone(),
@@ -60,9 +61,9 @@ pub fn add_address_ix(
                 }
             });
         }
-        Sig::Sol { sol_sig } => {
+        Sig::Sol { sol_sig, index } => {
             let controller_address_sign_ix =
-                load_instruction_at_checked(1, &ctx.accounts.ix_sysvar)?;
+                load_instruction_at_checked(index.try_into().unwrap(), &ctx.accounts.ix_sysvar)?;
 
             let add_message_as_controller = get_default_add_message_as_controller(
                 sol_sig.address_base58.clone(),
@@ -83,10 +84,11 @@ pub fn add_address_ix(
         }
     }
 
-    let new_address_sign_ix = load_instruction_at_checked(1, &ctx.accounts.ix_sysvar)?;
-
     match new_address_sig {
-        Sig::Eth { eth_sig } => {
+        Sig::Eth { eth_sig, index } => {
+            let new_address_sign_ix =
+                load_instruction_at_checked(index.try_into().unwrap(), &ctx.accounts.ix_sysvar)?;
+
             let new_address_hex = eth_sig.get_eth_address_hex();
 
             let add_message_as_new_adress =
@@ -102,7 +104,10 @@ pub fn add_address_ix(
 
             did.add_address_eth(clock.clone(), new_address);
         }
-        Sig::Sol { sol_sig } => {
+        Sig::Sol { sol_sig, index } => {
+            let new_address_sign_ix =
+                load_instruction_at_checked(index.try_into().unwrap(), &ctx.accounts.ix_sysvar)?;
+
             let new_address_hex = sol_sig.address_base58.clone();
 
             let add_message_as_new_adress =

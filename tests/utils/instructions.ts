@@ -25,6 +25,7 @@ export const createDIDEVM = async (
           sigBase58: base58.encode(signature),
           recoveryId: recoveryId,
         },
+        index: 0,
       },
     })
     .accounts({
@@ -61,6 +62,7 @@ export const createDIDSOL = async (
           addressBase58: bs58.encode(keypair.publicKey.toBuffer()),
           sigBase58: bs58.encode(signature),
         },
+        index: 0,
       },
     })
     .accounts({
@@ -106,6 +108,7 @@ export const addAddressEVMwithEVMController = async (
             sigBase58: base58.encode(newAddressSignature),
             recoveryId: newAddressRecoveryId,
           },
+          index: 1,
         },
       },
       {
@@ -117,6 +120,7 @@ export const addAddressEVMwithEVMController = async (
             sigBase58: base58.encode(controllerSignature),
             recoveryId: controllerRecoveryId,
           },
+          index: 0,
         },
       }
     )
@@ -157,11 +161,6 @@ export const addAddressEVMwithSOLController = async (
   newAddressRecoveryId: number,
   newAddressActualMessage: Buffer
 ) => {
-  console.log("newEthAddress", newEthSigner.address.toLowerCase());
-  console.log("newAddressSignature", newAddressSignature);
-  console.log("newAddressRecoveryId", newAddressRecoveryId);
-  console.log("newAddressActualMessage", newAddressActualMessage);
-
   const sig = await program.methods
     .addAddres(
       didStr,
@@ -174,6 +173,7 @@ export const addAddressEVMwithSOLController = async (
             sigBase58: base58.encode(newAddressSignature),
             recoveryId: newAddressRecoveryId,
           },
+          index: 0,
         },
       },
       {
@@ -182,6 +182,7 @@ export const addAddressEVMwithSOLController = async (
             addressBase58: bs58.encode(controllerAddress.toBuffer()),
             sigBase58: bs58.encode(controllerSignature),
           },
+          index: 1,
         },
       }
     )
@@ -191,16 +192,16 @@ export const addAddressEVMwithSOLController = async (
       payer: payer.publicKey,
     })
     .preInstructions([
-      anchor.web3.Ed25519Program.createInstructionWithPublicKey({
-        publicKey: controllerAddress.toBytes(),
-        message: controllerMessageEncoded,
-        signature: controllerSignature,
-      }),
       anchor.web3.Secp256k1Program.createInstructionWithEthAddress({
         ethAddress: newEthSigner.address.toLowerCase().slice(2),
         message: newAddressActualMessage,
         signature: newAddressSignature,
         recoveryId: newAddressRecoveryId,
+      }),
+      anchor.web3.Ed25519Program.createInstructionWithPublicKey({
+        publicKey: controllerAddress.toBytes(),
+        message: controllerMessageEncoded,
+        signature: controllerSignature,
       }),
     ])
     .rpc();
@@ -230,6 +231,7 @@ export const addAddressSOLWithEVMController = async (
             addressBase58: bs58.encode(newAddress.toBuffer()),
             sigBase58: bs58.encode(newSignature),
           },
+          index: 1,
         },
       },
       {
@@ -242,6 +244,7 @@ export const addAddressSOLWithEVMController = async (
             recoveryId: recoveryId,
           },
         },
+        index: 0,
       }
     )
     .accounts({
@@ -288,6 +291,7 @@ export const addAddrsesSOLWithSOLController = async (
             addressBase58: bs58.encode(newAddress.toBuffer()),
             sigBase58: bs58.encode(newSignature),
           },
+          index: 1,
         },
       },
       {
@@ -296,6 +300,7 @@ export const addAddrsesSOLWithSOLController = async (
             addressBase58: bs58.encode(controllerAddress.toBuffer()),
             sigBase58: bs58.encode(controllerSignature),
           },
+          index: 0,
         },
       }
     )
