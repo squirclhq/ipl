@@ -20,12 +20,22 @@ pub mod squircl_did {
         create_did_ix(ctx, did_str, sig)
     }
 
-    pub fn add_addres(
+    pub fn add_address(
         ctx: Context<AddAddress>,
         _did_str: String,
         new_address_sig: Sig,
         controller_sig: Sig,
     ) -> Result<()> {
         add_address_ix(ctx, new_address_sig, controller_sig)
+    }
+
+    pub fn remove_address(
+        ctx: Context<RemoveAddress>,
+        _did_str: String,
+        address_chain: Chain,
+        address: String,
+        remover_sig: Sig,
+    ) -> Result<()> {
+        remove_address_ix(ctx, address_chain, address, remover_sig)
     }
 }

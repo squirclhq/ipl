@@ -36,7 +36,7 @@ pub fn get_default_create_message(address: String) -> String {
 
 pub fn get_default_add_message_as_controller(controller: String, new_address: String) -> String {
     format!(
-        "I am adding {} to the Squircl DID with the address {} as a controller",
+        "I am adding {} to the Squircl DID with the address {}",
         new_address, controller
     )
 }
@@ -45,6 +45,20 @@ pub fn get_default_add_message_as_new_address(new_address: String) -> String {
     format!(
         "I am adding myself to the Squircl DID with the address {}",
         new_address
+    )
+}
+
+pub fn get_default_remove_message_as_address(address: String) -> String {
+    format!(
+        "I am removing myself from the Squircl DID with the address {}",
+        address
+    )
+}
+
+pub fn get_default_remove_message_as_controller(controller: String, address: String) -> String {
+    format!(
+        "I am removing {} from the Squircl DID with the address {}",
+        address, controller
     )
 }
 
@@ -76,7 +90,7 @@ pub fn verify_ed25519_ix(ix: &Instruction, pubkey: &[u8], msg: &[u8], sig: &[u8]
         ix.data.len()       != (16 + 64 + 32 + msg.len())
     // And data of this size
     {
-        msg!("Invalid ed25519 instruction");
+        msg!("Invalid Ed25519 instruction");
         return Err(IdentityErrorCode::InvalidSignature.into()); // Otherwise, we can already throw err
     }
 
@@ -206,16 +220,6 @@ pub fn check_secp256k1_data(
     //     msg!("message_instruction_index != &[0]");
     // }
 
-    // Arguments
-    if data_eth_address != eth_address
-        || data_sig != sig
-        || data_recovery_id != &[recovery_id]
-        || data_msg != msg
-    {
-        msg!("Invalid Secp256k1 instruction data (arguments)");
-        return Err(IdentityErrorCode::InvalidSignature.into()); // Otherwise, we can already throw err
-    }
-
     // the above check is failing, figure out by logging which check is actually failing
 
     // if data_eth_address != eth_address {
@@ -241,6 +245,16 @@ pub fn check_secp256k1_data(
     //     msg!("msg: {:?}", msg);
     //     msg!("data_msg != msg");
     // }
+
+    // Arguments
+    if data_eth_address != eth_address
+        || data_sig != sig
+        || data_recovery_id != &[recovery_id]
+        || data_msg != msg
+    {
+        msg!("Invalid Secp256k1 instruction data (arguments)");
+        return Err(IdentityErrorCode::InvalidSignature.into()); // Otherwise, we can already throw err
+    }
 
     Ok(())
 }

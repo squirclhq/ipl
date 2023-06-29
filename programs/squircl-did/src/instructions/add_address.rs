@@ -52,7 +52,7 @@ pub fn add_address_ix(
             eth_sig.verify(&controller_address_sign_ix, add_message_as_controller)?;
 
             did.eth_addresses.iter().for_each(|address| {
-                if address.address == new_address.address {
+                if address.address == eth_sig.get_eth_address_hex() {
                     if !(matches!(address.role, Role::Controller)
                         || matches!(address.role, Role::Admin))
                     {
@@ -73,7 +73,7 @@ pub fn add_address_ix(
             sol_sig.verify(&controller_address_sign_ix, add_message_as_controller)?;
 
             did.sol_addresses.iter().for_each(|address| {
-                if address.address == new_address.address {
+                if address.address == sol_sig.address_base58 {
                     if !(matches!(address.role, Role::Controller)
                         || matches!(address.role, Role::Admin))
                     {
@@ -133,7 +133,6 @@ pub fn add_address_ix(
 pub struct AddAddress<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
-
     #[account(
         mut,
         seeds = [&hash::hash(did_str.as_bytes()).to_bytes()],

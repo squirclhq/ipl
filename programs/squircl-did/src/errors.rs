@@ -12,4 +12,6 @@ pub enum IdentityErrorCode {
     AddressAlreadyExists,
     #[msg("Address doesn't have enough permissions")]
     AddressDoesntHaveEnoughPermissions,
+    #[msg("Cannot remove controller address")]
+    CannotRemoveControllerAddress,
 }

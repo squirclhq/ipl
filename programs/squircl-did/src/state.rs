@@ -21,10 +21,21 @@ impl Role {
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+pub enum Chain {
+    EVM = 0,
+    SOL = 1,
+}
+
+impl Chain {
+    pub const LEN: usize = U8_LENGTH;
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
 pub struct Address {
     pub address: String,
     pub added_at: i64,
     pub signature: String,
+    pub chain: Chain,
     pub role: Role,
     // pub nonce: [u8; 32],
 }
@@ -47,6 +58,7 @@ impl Address {
             address,
             added_at,
             signature,
+            chain: Chain::EVM,
             role,
             // nonce,
         }
@@ -63,6 +75,7 @@ impl Address {
             address,
             added_at,
             signature,
+            chain: Chain::SOL,
             role,
             // nonce,
         }
@@ -110,6 +123,16 @@ impl Did {
     pub fn add_address_eth(&mut self, clock: Clock, address: Address) {
         self.updated_at = clock.unix_timestamp;
         self.eth_addresses.push(address);
+    }
+
+    pub fn remove_address_sol(&mut self, clock: Clock, address: String) {
+        self.updated_at = clock.unix_timestamp;
+        self.sol_addresses.retain(|a| a.address != address);
+    }
+
+    pub fn remove_address_eth(&mut self, clock: Clock, address: String) {
+        self.updated_at = clock.unix_timestamp;
+        self.eth_addresses.retain(|a| a.address != address);
     }
 }
 

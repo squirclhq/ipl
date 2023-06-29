@@ -97,7 +97,7 @@ export const addAddressEVMwithEVMController = async (
   newAddressActualMessage: Buffer
 ) => {
   const sig = await program.methods
-    .addAddres(
+    .addAddress(
       didStr,
       {
         eth: {
@@ -162,7 +162,7 @@ export const addAddressEVMwithSOLController = async (
   newAddressActualMessage: Buffer
 ) => {
   const sig = await program.methods
-    .addAddres(
+    .addAddress(
       didStr,
       {
         eth: {
@@ -223,7 +223,7 @@ export const addAddressSOLWithEVMController = async (
   newMessageEncoded: Uint8Array
 ) => {
   const sig = await program.methods
-    .addAddres(
+    .addAddress(
       didStr,
       {
         sol: {
@@ -283,7 +283,7 @@ export const addAddrsesSOLWithSOLController = async (
   newMessageEncoded: Uint8Array
 ) => {
   const sig = await program.methods
-    .addAddres(
+    .addAddress(
       didStr,
       {
         sol: {
@@ -319,6 +319,87 @@ export const addAddrsesSOLWithSOLController = async (
         publicKey: newAddress.toBytes(),
         message: newMessageEncoded,
         signature: newSignature,
+      }),
+    ])
+    .rpc();
+
+  return sig;
+};
+
+export const removeAddressEVMRemover = async (
+  program: anchor.Program<SquirclDid>,
+  didStr: string,
+  didAccount: anchor.web3.PublicKey,
+  payer: any,
+  ethSigner: HDNodeWallet,
+  signature: Uint8Array,
+  recoveryId: number,
+  actual_message: Buffer,
+  addressToRemove: string,
+  toRemoveChain: any
+) => {
+  const sig = await program.methods
+    .removeAddress(didStr, toRemoveChain, addressToRemove, {
+      eth: {
+        ethSig: {
+          addressBase58: base58.encode(
+            arrayify(ethSigner.address.toLowerCase())
+          ),
+          sigBase58: base58.encode(signature),
+          recoveryId: recoveryId,
+        },
+        index: 0,
+      },
+    })
+    .accounts({
+      did: didAccount,
+      ixSysvar: anchor.web3.SYSVAR_INSTRUCTIONS_PUBKEY,
+      payer: payer.publicKey,
+    })
+    .preInstructions([
+      anchor.web3.Secp256k1Program.createInstructionWithEthAddress({
+        ethAddress: ethSigner.address.toLowerCase().slice(2),
+        message: actual_message,
+        signature: signature,
+        recoveryId: recoveryId,
+      }),
+    ])
+    .rpc();
+
+  return sig;
+};
+
+export const removeAddressSOLRemover = async (
+  program: anchor.Program<SquirclDid>,
+  didStr: string,
+  didAccount: anchor.web3.PublicKey,
+  payer: any,
+  removerAddress: anchor.web3.PublicKey,
+  removerSignature: Uint8Array,
+  removerMessageEncoded: Uint8Array,
+  addressToRemove: string,
+  toRemoveChain: any
+) => {
+  const sig = await program.methods
+    .removeAddress(didStr, toRemoveChain, addressToRemove, {
+      sol: {
+        solSig: {
+          addressBase58: bs58.encode(removerAddress.toBuffer()),
+          sigBase58: bs58.encode(removerSignature),
+        },
+        index: 0,
+      },
+    })
+    .accounts({
+      did: didAccount,
+      ixSysvar: anchor.web3.SYSVAR_INSTRUCTIONS_PUBKEY,
+      payer: payer.publicKey,
+    })
+    .preInstructions([
+      anchor.web3.Ed25519Program.createInstructionWithPublicKey({
+        publicKey: removerAddress.toBytes(),
+        message: removerMessageEncoded,
+        signature: removerSignature,
       }),
     ])
     .rpc();
