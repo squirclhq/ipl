@@ -7,7 +7,7 @@ use anchor_lang::{
 };
 
 use crate::{
-    errors::IdentityErrorCode,
+    errors::DidErrorCode,
     state::{Address, Did, Role, Sig},
     utils::{get_default_add_message_as_controller, get_default_add_message_as_new_address},
 };
@@ -36,7 +36,7 @@ pub fn add_address_ix(
             Role::Admin,
         )
     } else {
-        return Err(IdentityErrorCode::InvalidSignature.into());
+        return Err(DidErrorCode::InvalidSignature.into());
     };
 
     match controller_sig {
@@ -56,7 +56,7 @@ pub fn add_address_ix(
                     if !(matches!(address.role, Role::Controller)
                         || matches!(address.role, Role::Admin))
                     {
-                        panic!("{}", IdentityErrorCode::AddressDoesntHaveEnoughPermissions)
+                        panic!("{}", DidErrorCode::AddressDoesntHaveEnoughPermissions)
                     }
                 }
             });
@@ -77,7 +77,7 @@ pub fn add_address_ix(
                     if !(matches!(address.role, Role::Controller)
                         || matches!(address.role, Role::Admin))
                     {
-                        panic!("{}", IdentityErrorCode::AddressDoesntHaveEnoughPermissions)
+                        panic!("{}", DidErrorCode::AddressDoesntHaveEnoughPermissions)
                     }
                 }
             });
@@ -98,7 +98,7 @@ pub fn add_address_ix(
 
             did.eth_addresses.iter().for_each(|address| {
                 if address.address == new_address.address {
-                    panic!("{}", IdentityErrorCode::AddressAlreadyExists)
+                    panic!("{}", DidErrorCode::AddressAlreadyExists)
                 }
             });
 
@@ -117,7 +117,7 @@ pub fn add_address_ix(
 
             did.sol_addresses.iter().for_each(|address| {
                 if address.address == new_address.address {
-                    panic!("{}", IdentityErrorCode::AddressAlreadyExists)
+                    panic!("{}", DidErrorCode::AddressAlreadyExists)
                 }
             });
 

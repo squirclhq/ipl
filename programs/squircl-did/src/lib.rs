@@ -38,4 +38,50 @@ pub mod squircl_did {
     ) -> Result<()> {
         remove_address_ix(ctx, address_chain, address, remover_sig)
     }
+
+    pub fn issue_credential(
+        ctx: Context<IssueCredential>,
+        credential_id: String,
+        uri: String,
+        credential_hash: String,
+        is_mutable: bool,
+        is_revokable: bool,
+        expires_at: Option<i64>,
+    ) -> Result<()> {
+        issue_credential_handler(
+            ctx,
+            credential_id,
+            uri,
+            credential_hash,
+            is_mutable,
+            is_revokable,
+            expires_at,
+        )
+    }
+
+    pub fn update_credential(
+        ctx: Context<UpdateCredential>,
+        _credential_id: String,
+        uri: String,
+        credential_hash: String,
+        is_mutable: bool,
+        is_revokable: bool,
+        expires_at: Option<i64>,
+    ) -> Result<()> {
+        update_credential_handler(
+            ctx,
+            uri,
+            credential_hash,
+            is_mutable,
+            is_revokable,
+            expires_at,
+        )
+    }
+
+    pub fn revoke_credential(
+        _ctx: Context<RevokeCredential>,
+        _credential_id: String,
+    ) -> Result<()> {
+        revoke_credential_handler()
+    }
 }

@@ -7,7 +7,7 @@ use anchor_lang::{
 };
 
 use crate::{
-    errors::IdentityErrorCode,
+    errors::DidErrorCode,
     state::{Address, Chain, Did, Role, Sig},
     utils::{get_default_remove_message_as_address, get_default_remove_message_as_controller},
 };
@@ -37,7 +37,7 @@ pub fn remove_address_ix(
                         if !(matches!(address.role, Role::Controller)
                             || matches!(address.role, Role::Admin))
                         {
-                            panic!("{}", IdentityErrorCode::AddressDoesntHaveEnoughPermissions)
+                            panic!("{}", DidErrorCode::AddressDoesntHaveEnoughPermissions)
                         }
                     }
                 });
@@ -60,7 +60,7 @@ pub fn remove_address_ix(
                     did.eth_addresses.iter().for_each(|addr| {
                         if addr.address == address {
                             if matches!(addr.role, Role::Controller) {
-                                panic!("{}", IdentityErrorCode::CannotRemoveControllerAddress)
+                                panic!("{}", DidErrorCode::CannotRemoveControllerAddress)
                             }
                         }
                     });
@@ -71,7 +71,7 @@ pub fn remove_address_ix(
                     did.sol_addresses.iter().for_each(|addr| {
                         if addr.address == address {
                             if matches!(addr.role, Role::Controller) {
-                                panic!("{}", IdentityErrorCode::CannotRemoveControllerAddress)
+                                panic!("{}", DidErrorCode::CannotRemoveControllerAddress)
                             }
                         }
                     });
@@ -94,7 +94,7 @@ pub fn remove_address_ix(
                         if !(matches!(address.role, Role::Controller)
                             || matches!(address.role, Role::Admin))
                         {
-                            panic!("{}", IdentityErrorCode::AddressDoesntHaveEnoughPermissions)
+                            panic!("{}", DidErrorCode::AddressDoesntHaveEnoughPermissions)
                         }
                     }
                 })
@@ -115,7 +115,7 @@ pub fn remove_address_ix(
                     did.eth_addresses.iter().for_each(|addr| {
                         if addr.address == address {
                             if matches!(addr.role, Role::Controller) {
-                                panic!("{}", IdentityErrorCode::CannotRemoveControllerAddress)
+                                panic!("{}", DidErrorCode::CannotRemoveControllerAddress)
                             }
                         }
                     });
@@ -126,7 +126,7 @@ pub fn remove_address_ix(
                     did.sol_addresses.iter().for_each(|addr| {
                         if addr.address == address {
                             if matches!(addr.role, Role::Controller) {
-                                panic!("{}", IdentityErrorCode::CannotRemoveControllerAddress)
+                                panic!("{}", DidErrorCode::CannotRemoveControllerAddress)
                             }
                         }
                     });

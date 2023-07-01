@@ -89,6 +89,8 @@ describe("squircl_identity", () => {
 
     // convert the raw data to a did account
 
+    console.log(didAccount.toBase58());
+
     console.log(program.coder.accounts.decode("Did", rawDIDAccountData.data));
 
     const didAccountData = await program.account.did.fetch(didAccount);

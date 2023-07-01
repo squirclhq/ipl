@@ -8,7 +8,7 @@ use anchor_lang::{
     },
 };
 
-use crate::errors::IdentityErrorCode;
+use crate::errors::DidErrorCode;
 
 pub fn get_ethereum_message_hash(message: String) -> Vec<u8> {
     let msg_data = [
@@ -76,7 +76,7 @@ pub fn verify_secp256k1_ix(
     // And data of this size
     {
         msg!("Invalid Secp256k1 instruction");
-        return Err(IdentityErrorCode::InvalidSignature.into()); // Otherwise, we can already throw err
+        return Err(DidErrorCode::InvalidSignature.into()); // Otherwise, we can already throw err
     }
 
     check_secp256k1_data(&ix.data, eth_address, msg, sig, recovery_id)?; // If that's not the case, check data
@@ -91,7 +91,7 @@ pub fn verify_ed25519_ix(ix: &Instruction, pubkey: &[u8], msg: &[u8], sig: &[u8]
     // And data of this size
     {
         msg!("Invalid Ed25519 instruction");
-        return Err(IdentityErrorCode::InvalidSignature.into()); // Otherwise, we can already throw err
+        return Err(DidErrorCode::InvalidSignature.into()); // Otherwise, we can already throw err
     }
 
     check_ed25519_data(&ix.data, pubkey, msg, sig)?; // If that's not the case, check data
@@ -155,7 +155,7 @@ pub fn check_secp256k1_data(
         || message_instruction_index != &[0]
     {
         msg!("Invalid Secp256k1 instruction data (header)");
-        return Err(IdentityErrorCode::InvalidSignature.into()); // Otherwise, we can already throw err
+        return Err(DidErrorCode::InvalidSignature.into()); // Otherwise, we can already throw err
     }
 
     // the above check is failing, figure out by logging which check is actually failing
@@ -253,7 +253,7 @@ pub fn check_secp256k1_data(
         || data_msg != msg
     {
         msg!("Invalid Secp256k1 instruction data (arguments)");
-        return Err(IdentityErrorCode::InvalidSignature.into()); // Otherwise, we can already throw err
+        return Err(DidErrorCode::InvalidSignature.into()); // Otherwise, we can already throw err
     }
 
     Ok(())
@@ -302,13 +302,13 @@ pub fn check_ed25519_data(data: &[u8], pubkey: &[u8], msg: &[u8], sig: &[u8]) ->
         || message_instruction_index != &u16::MAX.to_le_bytes()
     {
         msg!("Invalid Ed25519 instruction data (header)");
-        return Err(IdentityErrorCode::InvalidSignature.into()); // Otherwise, we can already throw err
+        return Err(DidErrorCode::InvalidSignature.into()); // Otherwise, we can already throw err
     }
 
     // Arguments
     if data_pubkey != pubkey || data_msg != msg || data_sig != sig {
         msg!("Invalid Ed25519 instruction data (arguments)");
-        return Err(IdentityErrorCode::InvalidSignature.into()); // Otherwise, we can already throw err
+        return Err(DidErrorCode::InvalidSignature.into()); // Otherwise, we can already throw err
     }
 
     Ok(())
