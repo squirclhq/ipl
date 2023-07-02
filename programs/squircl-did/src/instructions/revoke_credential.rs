@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 
 use crate::{
-    errors::CredentialErrorCode,
+    errors::SquirclErrorCode,
     state::{Credential, Did},
 };
 
@@ -20,7 +20,7 @@ pub struct RevokeCredential<'info> {
         mut,
         seeds = [Credential::SEED_PREFIX.as_bytes(), issuer_did.did.as_bytes(), subject_did.did.as_bytes(), credential_id.as_bytes()],
         bump,
-        constraint = credential.is_revokable @CredentialErrorCode::CredentialIsNotRevokable,
+        constraint = credential.is_revokable @SquirclErrorCode::CredentialIsNotRevokable,
         close = payer
     )]
     pub credential: Account<'info, Credential>,

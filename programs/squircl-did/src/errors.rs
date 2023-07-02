@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 
 #[error_code]
-pub enum DidErrorCode {
+pub enum SquirclErrorCode {
     #[msg("Invalid signature length")]
     InvalidSignatureLength,
     #[msg("Invalid signature")]
@@ -14,14 +14,10 @@ pub enum DidErrorCode {
     AddressDoesntHaveEnoughPermissions,
     #[msg("Cannot remove controller address")]
     CannotRemoveControllerAddress,
-}
-
-#[error_code]
-pub enum CredentialErrorCode {
     #[msg("Expiry cannot be in the past")]
     ExpiryCannotBeInThePast,
     #[msg("Credential is not mutable")]
     CredentialIsNotMutable,
-    #[msg("Credential is not revokable")]
+    #[msg("Credential i not revokable")]
     CredentialIsNotRevokable,
 }

@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 
 use crate::{
-    errors::CredentialErrorCode,
+    errors::SquirclErrorCode,
     state::{Credential, Did},
 };
 
@@ -19,7 +19,7 @@ pub fn update_credential_handler(
 
     require!(
         expires_at == None || expires_at.unwrap() > clock.unix_timestamp,
-        CredentialErrorCode::ExpiryCannotBeInThePast
+        SquirclErrorCode::ExpiryCannotBeInThePast
     );
 
     credential.uri = uri;
@@ -43,7 +43,7 @@ pub struct UpdateCredential<'info> {
         realloc = Credential::LEN_BASE + (4 + (4 * credential_id.len())) + (4 + (4 * uri.len())) + (4 + (4 * credential_hash.len())),
         realloc::payer = payer,
         realloc::zero = false,
-        constraint = credential.is_mutable @CredentialErrorCode::CredentialIsNotMutable,
+        constraint = credential.is_mutable @SquirclErrorCode::CredentialIsNotMutable,
     )]
     pub credential: Account<'info, Credential>,
     pub issuer_did: Account<'info, Did>,

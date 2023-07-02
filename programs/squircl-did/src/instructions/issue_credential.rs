@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 
 use crate::{
-    errors::CredentialErrorCode,
+    errors::SquirclErrorCode,
     state::{Credential, Did},
 };
 
@@ -20,7 +20,7 @@ pub fn issue_credential_handler(
 
     require!(
         expires_at == None || expires_at.unwrap() > clock.unix_timestamp,
-        CredentialErrorCode::ExpiryCannotBeInThePast
+        SquirclErrorCode::ExpiryCannotBeInThePast
     );
 
     credential.set_inner(Credential {
