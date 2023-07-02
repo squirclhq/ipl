@@ -32,15 +32,23 @@ pub fn remove_address_ix(
             let is_self_remove = address == eth_address;
 
             if !is_self_remove {
+                let mut verified: bool = false;
+
                 did.eth_addresses.iter().for_each(|address| {
                     if address.address == eth_address {
                         if !(matches!(address.role, Role::Controller)
                             || matches!(address.role, Role::Admin))
                         {
                             panic!("{}", SquirclErrorCode::AddressDoesntHaveEnoughPermissions)
+                        } else {
+                            verified = true;
                         }
                     }
                 });
+
+                if !verified {
+                    panic!("{}", SquirclErrorCode::AddressDoesNotExistInDID)
+                }
             }
 
             let message = if is_self_remove {
@@ -57,24 +65,34 @@ pub fn remove_address_ix(
 
             match address_chain {
                 Chain::EVM => {
-                    did.eth_addresses.iter().for_each(|addr| {
-                        if addr.address == address {
-                            if matches!(addr.role, Role::Controller) {
-                                panic!("{}", SquirclErrorCode::CannotRemoveControllerAddress)
-                            }
-                        }
-                    });
+                    let found_address = did
+                        .eth_addresses
+                        .iter()
+                        .find(|addr| addr.address == address);
+
+                    if !found_address.is_some() {
+                        panic!("{}", SquirclErrorCode::AddressDoesNotExistInDID)
+                    }
+
+                    if matches!(found_address.unwrap().role, Role::Controller) {
+                        panic!("{}", SquirclErrorCode::CannotRemoveControllerAddress)
+                    }
 
                     did.remove_address_eth(clock, address)
                 }
                 Chain::SOL => {
-                    did.sol_addresses.iter().for_each(|addr| {
-                        if addr.address == address {
-                            if matches!(addr.role, Role::Controller) {
-                                panic!("{}", SquirclErrorCode::CannotRemoveControllerAddress)
-                            }
-                        }
-                    });
+                    let found_address = did
+                        .sol_addresses
+                        .iter()
+                        .find(|addr| addr.address == address);
+
+                    if !found_address.is_some() {
+                        panic!("{}", SquirclErrorCode::AddressDoesNotExistInDID)
+                    }
+
+                    if matches!(found_address.unwrap().role, Role::Controller) {
+                        panic!("{}", SquirclErrorCode::CannotRemoveControllerAddress)
+                    }
 
                     did.remove_address_sol(clock, address)
                 }
@@ -89,6 +107,8 @@ pub fn remove_address_ix(
             let is_self_remove = address == sol_address;
 
             if !is_self_remove {
+                let mut verified: bool = false;
+
                 did.sol_addresses.iter().for_each(|address| {
                     if address.address == sol_address {
                         if !(matches!(address.role, Role::Controller)
@@ -96,8 +116,14 @@ pub fn remove_address_ix(
                         {
                             panic!("{}", SquirclErrorCode::AddressDoesntHaveEnoughPermissions)
                         }
+                    } else {
+                        verified = true;
                     }
-                })
+                });
+
+                if !verified {
+                    panic!("{}", SquirclErrorCode::AddressDoesNotExistInDID)
+                }
             }
 
             let message = if is_self_remove {

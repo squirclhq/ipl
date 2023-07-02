@@ -20,4 +20,6 @@ pub enum SquirclErrorCode {
     CredentialIsNotMutable,
     #[msg("Credential i not revokable")]
     CredentialIsNotRevokable,
+    #[msg("Address does not exist in DID")]
+    AddressDoesNotExistInDID,
 }

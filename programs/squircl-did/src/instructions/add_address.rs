@@ -51,15 +51,23 @@ pub fn add_address_ix(
 
             eth_sig.verify(&controller_address_sign_ix, add_message_as_controller)?;
 
+            let mut verified: bool = false;
+
             did.eth_addresses.iter().for_each(|address| {
                 if address.address == eth_sig.get_eth_address_hex() {
                     if !(matches!(address.role, Role::Controller)
                         || matches!(address.role, Role::Admin))
                     {
                         panic!("{}", SquirclErrorCode::AddressDoesntHaveEnoughPermissions)
+                    } else {
+                        verified = true;
                     }
                 }
             });
+
+            if !verified {
+                panic!("{}", SquirclErrorCode::AddressDoesNotExistInDID)
+            }
         }
         Sig::Sol { sol_sig, index } => {
             let controller_address_sign_ix =
@@ -72,15 +80,23 @@ pub fn add_address_ix(
 
             sol_sig.verify(&controller_address_sign_ix, add_message_as_controller)?;
 
+            let mut verified: bool = false;
+
             did.sol_addresses.iter().for_each(|address| {
                 if address.address == sol_sig.address_base58 {
                     if !(matches!(address.role, Role::Controller)
                         || matches!(address.role, Role::Admin))
                     {
                         panic!("{}", SquirclErrorCode::AddressDoesntHaveEnoughPermissions)
+                    } else {
+                        verified = true;
                     }
                 }
             });
+
+            if !verified {
+                panic!("{}", SquirclErrorCode::AddressDoesNotExistInDID)
+            }
         }
     }
 
