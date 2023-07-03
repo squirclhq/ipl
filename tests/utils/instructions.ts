@@ -406,3 +406,62 @@ export const removeAddressSOLRemover = async (
 
   return sig;
 };
+
+export const issueCredentialEth = async (
+  program: anchor.Program<SquirclDid>,
+  issuerDidStr: string,
+  subjectDidStr: string,
+  issuerDidAccount: anchor.web3.PublicKey,
+  subjectDidAccount: anchor.web3.PublicKey,
+  credentialAccount: anchor.web3.PublicKey,
+  payer: any,
+  issuerEthSigner: HDNodeWallet,
+  issuerSignature: Uint8Array,
+  issuerRecoveryId: number,
+  issuerActualMessage: Buffer,
+  credentialId: string,
+  uri: string,
+  hash: string,
+  expiresAt: number,
+  isMutable: boolean,
+  isRevokable: boolean
+) => {
+  const sig = await program.methods
+    .issueCredential(
+      credentialId,
+      uri,
+      hash,
+      true,
+      false,
+      new anchor.BN(expiresAt),
+      {
+        eth: {
+          ethSig: {
+            addressBase58: base58.encode(
+              arrayify(issuerEthSigner.address.toLowerCase())
+            ),
+            sigBase58: base58.encode(issuerSignature),
+            recoveryId: issuerRecoveryId,
+          },
+          index: 0,
+        },
+      }
+    )
+    .accounts({
+      credential: credentialAccount,
+      issuerDid: issuerDidAccount,
+      subjectDid: subjectDidAccount,
+      ixSysvar: anchor.web3.SYSVAR_INSTRUCTIONS_PUBKEY,
+    })
+    .preInstructions([
+      anchor.web3.Secp256k1Program.createInstructionWithEthAddress({
+        ethAddress: issuerEthSigner.address.toLowerCase().slice(2),
+        message: issuerActualMessage,
+        signature: issuerSignature,
+        recoveryId: issuerRecoveryId,
+      }),
+    ])
+    .rpc();
+
+  return sig;
+};

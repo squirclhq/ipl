@@ -1,5 +1,7 @@
 // Big kudos to https://github.com/GuidoDipietro/solana-ed25519-secp256k1-sig-verification/blob/master/programs/solana-ed25519-sig-verification/src/lib.rs
 
+use std::fmt::format;
+
 use anchor_lang::{
     prelude::*,
     solana_program::{
@@ -60,6 +62,16 @@ pub fn get_default_remove_message_as_controller(controller: String, address: Str
         "I am removing {} from the Squircl DID with the address {}",
         address, controller
     )
+}
+
+pub fn get_default_issue_credential_message(
+    credential_id: &String,
+    issuer_did: &String,
+    subject_did: &String,
+    uri: &String,
+    hash: &String,
+) -> String {
+    format!("I am issuing a {} credential to {} for the Squircl DID with the DID {}. Uri: {}. Hash: {}.", credential_id, subject_did, issuer_did, uri, hash)
 }
 
 /// Verify Secp256k1Program instruction fields

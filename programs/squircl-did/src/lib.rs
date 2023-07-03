@@ -47,10 +47,12 @@ pub mod squircl_did {
         is_mutable: bool,
         is_revokable: bool,
         expires_at: Option<i64>,
+        issuer_sig: Sig,
     ) -> Result<()> {
         issue_credential_handler(
             ctx,
             credential_id,
+            issuer_sig,
             uri,
             credential_hash,
             is_mutable,
