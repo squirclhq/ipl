@@ -33,55 +33,55 @@ pub fn issue_credential_handler(
         SquirclErrorCode::ExpiryCannotBeInThePast
     );
 
-    // match issuer_sig {
-    //     Sig::Eth { eth_sig, index } => {
-    //         let controller_address_sign_ix =
-    //             load_instruction_at_checked(index.try_into().unwrap(), &ctx.accounts.ix_sysvar)?;
+    match issuer_sig {
+        Sig::Eth { eth_sig, index } => {
+            let controller_address_sign_ix =
+                load_instruction_at_checked(index.try_into().unwrap(), &ctx.accounts.ix_sysvar)?;
 
-    //         let issue_credential_message = get_default_issue_credential_message(
-    //             &credential_id,
-    //             &issuer_did.did,
-    //             &subject_did.did,
-    //             &uri,
-    //             &credential_hash,
-    //         );
+            let issue_credential_message = get_default_issue_credential_message(
+                &credential_id,
+                &issuer_did.did,
+                &subject_did.did,
+                &uri,
+                &credential_hash,
+            );
 
-    //         eth_sig.verify(&controller_address_sign_ix, issue_credential_message)?;
+            eth_sig.verify(&controller_address_sign_ix, issue_credential_message)?;
 
-    //         let found_address = issuer_did
-    //             .eth_addresses
-    //             .iter()
-    //             .find(|address| address.address == eth_sig.get_eth_address_hex());
+            let found_address = issuer_did
+                .eth_addresses
+                .iter()
+                .find(|address| address.address == eth_sig.get_eth_address_hex());
 
-    //         if !found_address.is_some() {
-    //             return Err(SquirclErrorCode::AddressDoesNotExistInDID.into());
-    //         }
-    //     }
+            if !found_address.is_some() {
+                return Err(SquirclErrorCode::AddressDoesNotExistInDID.into());
+            }
+        }
 
-    //     Sig::Sol { sol_sig, index } => {
-    //         let controller_address_sign_ix =
-    //             load_instruction_at_checked(index.try_into().unwrap(), &ctx.accounts.ix_sysvar)?;
+        Sig::Sol { sol_sig, index } => {
+            let controller_address_sign_ix =
+                load_instruction_at_checked(index.try_into().unwrap(), &ctx.accounts.ix_sysvar)?;
 
-    //         let issue_credential_message = get_default_issue_credential_message(
-    //             &credential_id,
-    //             &issuer_did.did,
-    //             &subject_did.did,
-    //             &uri,
-    //             &credential_hash,
-    //         );
+            let issue_credential_message = get_default_issue_credential_message(
+                &credential_id,
+                &issuer_did.did,
+                &subject_did.did,
+                &uri,
+                &credential_hash,
+            );
 
-    //         sol_sig.verify(&controller_address_sign_ix, issue_credential_message)?;
+            sol_sig.verify(&controller_address_sign_ix, issue_credential_message)?;
 
-    //         let found_address = issuer_did
-    //             .sol_addresses
-    //             .iter()
-    //             .find(|address| address.address == sol_sig.address_base58);
+            let found_address = issuer_did
+                .sol_addresses
+                .iter()
+                .find(|address| address.address == sol_sig.address_base58);
 
-    //         if !found_address.is_some() {
-    //             return Err(SquirclErrorCode::AddressDoesNotExistInDID.into());
-    //         }
-    //     }
-    // }
+            if !found_address.is_some() {
+                return Err(SquirclErrorCode::AddressDoesNotExistInDID.into());
+            }
+        }
+    }
 
     credential.set_inner(Credential {
         issuer_did: ctx.accounts.issuer_did.did.to_string(),

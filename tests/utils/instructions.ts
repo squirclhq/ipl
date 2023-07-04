@@ -409,8 +409,6 @@ export const removeAddressSOLRemover = async (
 
 export const issueCredentialEth = async (
   program: anchor.Program<SquirclDid>,
-  issuerDidStr: string,
-  subjectDidStr: string,
   issuerDidAccount: anchor.web3.PublicKey,
   subjectDidAccount: anchor.web3.PublicKey,
   credentialAccount: anchor.web3.PublicKey,
@@ -431,8 +429,8 @@ export const issueCredentialEth = async (
       credentialId,
       uri,
       hash,
-      true,
-      false,
+      isMutable,
+      isRevokable,
       new anchor.BN(expiresAt),
       {
         eth: {
@@ -452,6 +450,7 @@ export const issueCredentialEth = async (
       issuerDid: issuerDidAccount,
       subjectDid: subjectDidAccount,
       ixSysvar: anchor.web3.SYSVAR_INSTRUCTIONS_PUBKEY,
+      payer: payer.publicKey,
     })
     .preInstructions([
       anchor.web3.Secp256k1Program.createInstructionWithEthAddress({
@@ -459,6 +458,170 @@ export const issueCredentialEth = async (
         message: issuerActualMessage,
         signature: issuerSignature,
         recoveryId: issuerRecoveryId,
+      }),
+    ])
+    .rpc();
+
+  return sig;
+};
+
+export const issueCredentialSol = async (
+  program: anchor.Program<SquirclDid>,
+  issuerDidAccount: anchor.web3.PublicKey,
+  subjectDidAccount: anchor.web3.PublicKey,
+  credentialAccount: anchor.web3.PublicKey,
+  payer: any,
+  issuerAddress: anchor.web3.PublicKey,
+  issuerSignature: Uint8Array,
+  issuerMessageEncoded: Uint8Array,
+  credentialId: string,
+  uri: string,
+  hash: string,
+  expiresAt: number,
+  isMutable: boolean,
+  isRevokable: boolean
+) => {
+  const sig = await program.methods
+    .issueCredential(
+      credentialId,
+      uri,
+      hash,
+      isMutable,
+      isRevokable,
+      new anchor.BN(expiresAt),
+      {
+        sol: {
+          solSig: {
+            addressBase58: bs58.encode(issuerAddress.toBuffer()),
+            sigBase58: bs58.encode(issuerSignature),
+          },
+          index: 0,
+        },
+      }
+    )
+    .accounts({
+      credential: credentialAccount,
+      issuerDid: issuerDidAccount,
+      subjectDid: subjectDidAccount,
+      ixSysvar: anchor.web3.SYSVAR_INSTRUCTIONS_PUBKEY,
+      payer: payer.publicKey,
+    })
+    .preInstructions([
+      anchor.web3.Ed25519Program.createInstructionWithPublicKey({
+        publicKey: issuerAddress.toBytes(),
+        message: issuerMessageEncoded,
+        signature: issuerSignature,
+      }),
+    ])
+    .rpc();
+
+  return sig;
+};
+
+export const updateCredentialEth = async (
+  program: anchor.Program<SquirclDid>,
+  issuerDidAccount: anchor.web3.PublicKey,
+  subjectDidAccount: anchor.web3.PublicKey,
+  credentialAccount: anchor.web3.PublicKey,
+  payer: any,
+  issuerEthSigner: HDNodeWallet,
+  issuerSignature: Uint8Array,
+  issuerRecoveryId: number,
+  issuerActualMessage: Buffer,
+  credentialId: string,
+  uri: string,
+  hash: string,
+  expiresAt: number,
+  isMutable: boolean,
+  isRevokable: boolean
+) => {
+  const sig = await program.methods
+    .updateCredential(
+      credentialId,
+      uri,
+      hash,
+      isMutable,
+      isRevokable,
+      new anchor.BN(expiresAt),
+      {
+        eth: {
+          ethSig: {
+            addressBase58: base58.encode(
+              arrayify(issuerEthSigner.address.toLowerCase())
+            ),
+            sigBase58: base58.encode(issuerSignature),
+            recoveryId: issuerRecoveryId,
+          },
+          index: 0,
+        },
+      }
+    )
+    .accounts({
+      credential: credentialAccount,
+      issuerDid: issuerDidAccount,
+      subjectDid: subjectDidAccount,
+      ixSysvar: anchor.web3.SYSVAR_INSTRUCTIONS_PUBKEY,
+      payer: payer.publicKey,
+    })
+    .preInstructions([
+      anchor.web3.Secp256k1Program.createInstructionWithEthAddress({
+        ethAddress: issuerEthSigner.address.toLowerCase().slice(2),
+        message: issuerActualMessage,
+        signature: issuerSignature,
+        recoveryId: issuerRecoveryId,
+      }),
+    ])
+    .rpc();
+
+  return sig;
+};
+
+export const updateCredentialSol = async (
+  program: anchor.Program<SquirclDid>,
+  issuerDidAccount: anchor.web3.PublicKey,
+  subjectDidAccount: anchor.web3.PublicKey,
+  credentialAccount: anchor.web3.PublicKey,
+  payer: any,
+  issuerAddress: anchor.web3.PublicKey,
+  issuerSignature: Uint8Array,
+  issuerMessageEncoded: Uint8Array,
+  credentialId: string,
+  uri: string,
+  hash: string,
+  expiresAt: number,
+  isMutable: boolean,
+  isRevokable: boolean
+) => {
+  const sig = await program.methods
+    .updateCredential(
+      credentialId,
+      uri,
+      hash,
+      isMutable,
+      isRevokable,
+      new anchor.BN(expiresAt),
+      {
+        sol: {
+          solSig: {
+            addressBase58: bs58.encode(issuerAddress.toBuffer()),
+            sigBase58: bs58.encode(issuerSignature),
+          },
+          index: 0,
+        },
+      }
+    )
+    .accounts({
+      credential: credentialAccount,
+      issuerDid: issuerDidAccount,
+      subjectDid: subjectDidAccount,
+      ixSysvar: anchor.web3.SYSVAR_INSTRUCTIONS_PUBKEY,
+      payer: payer.publicKey,
+    })
+    .preInstructions([
+      anchor.web3.Ed25519Program.createInstructionWithPublicKey({
+        publicKey: issuerAddress.toBytes(),
+        message: issuerMessageEncoded,
+        signature: issuerSignature,
       }),
     ])
     .rpc();

@@ -63,15 +63,18 @@ pub mod squircl_did {
 
     pub fn update_credential(
         ctx: Context<UpdateCredential>,
-        _credential_id: String,
+        credential_id: String,
         uri: String,
         credential_hash: String,
         is_mutable: bool,
         is_revokable: bool,
         expires_at: Option<i64>,
+        issuer_sig: Sig,
     ) -> Result<()> {
         update_credential_handler(
             ctx,
+            credential_id,
+            issuer_sig,
             uri,
             credential_hash,
             is_mutable,

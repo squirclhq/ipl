@@ -74,6 +74,19 @@ pub fn get_default_issue_credential_message(
     format!("I am issuing a {} credential to {} for the Squircl DID with the DID {}. Uri: {}. Hash: {}.", credential_id, subject_did, issuer_did, uri, hash)
 }
 
+pub fn get_default_update_credential_message(
+    credential_id: &String,
+    issuer_did: &String,
+    subject_did: &String,
+    uri: &String,
+    hash: &String,
+) -> String {
+    format!(
+        "I am updating the {} credential issued to {} by {}. New uri: {}. New hash: {}.",
+        credential_id, subject_did, issuer_did, uri, hash,
+    )
+}
+
 /// Verify Secp256k1Program instruction fields
 pub fn verify_secp256k1_ix(
     ix: &Instruction,

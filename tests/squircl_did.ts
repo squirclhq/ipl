@@ -11,7 +11,10 @@ import {
 } from "./did/createDID";
 import { addAddressEth, addAddressSol } from "./did/addAddress";
 import { removeAddressTest } from "./did/removeAddress";
-import { issueCredentialEvmTest } from "./did/issueCredential";
+import {
+  issueCredentialEvmTest,
+  issueCredentialSolTest,
+} from "./did/issueCredential";
 
 lumina();
 
@@ -51,7 +54,11 @@ describe("squircl_identity", () => {
     await removeAddressTest(program, payer);
   });
 
-  it("can issue a credential", async () => {
+  it("can issue a credential evm", async () => {
     await issueCredentialEvmTest(program, payer);
+  });
+
+  it("can issue a credential sol", async () => {
+    await issueCredentialSolTest(program, payer);
   });
 });
