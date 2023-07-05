@@ -12,6 +12,8 @@ import {
   createDIDSOL,
   issueCredentialEth,
   issueCredentialSol,
+  revokeCredentialSol,
+  revokeCredentialEvm,
   updateCredentialEth,
   updateCredentialSol,
 } from "../utils/instructions";
@@ -164,6 +166,33 @@ export const issueCredentialEvmTest = async (
   expect(updatedAccountData.expiresAt.toNumber()).to.equal(updatedExpiresAt);
   expect(updatedAccountData.isMutable).to.equal(true);
   expect(updatedAccountData.isRevokable).to.equal(true);
+
+  const revokeMessage = `I am revoking the ${credentialId} credential issued to ${subjectDidStr} by ${issuerDidStr}.`;
+
+  const {
+    actual_message: revokeActualMessage,
+    signature: revokeSignature,
+    recoveryId: revokeRecoveryId,
+  } = await signEthMessage(revokeMessage, issuerEthSigner);
+
+  await revokeCredentialEvm(
+    program,
+    issuerDidAccount,
+    subjectDidAccount,
+    credentialAccount,
+    payer,
+    issuerEthSigner,
+    revokeSignature,
+    revokeRecoveryId,
+    revokeActualMessage,
+    credentialId
+  );
+
+  try {
+    await program.account.credential.fetch(credentialAccount);
+  } catch (e) {
+    expect(e.toString()).to.contain("Account does not exist");
+  }
 };
 
 export const issueCredentialSolTest = async (
@@ -310,4 +339,30 @@ export const issueCredentialSolTest = async (
   expect(updatedAccountData.expiresAt.toNumber()).to.equal(updatedExpiresAt);
   expect(updatedAccountData.isMutable).to.equal(true);
   expect(updatedAccountData.isRevokable).to.equal(true);
+
+  const revokeMessage = `I am revoking the ${credentialId} credential issued to ${subjectDidStr} by ${issuerDidStr}.`;
+  const revokeMessageEncoded = Uint8Array.from(Buffer.from(revokeMessage));
+
+  const revokeSignature = nacl.sign.detached(
+    revokeMessageEncoded,
+    issuerKeypair.secretKey
+  );
+
+  await revokeCredentialSol(
+    program,
+    issuerDidAccount,
+    subjectDidAccount,
+    credentialAccount,
+    payer,
+    issuerKeypair.publicKey,
+    revokeSignature,
+    revokeMessageEncoded,
+    credentialId
+  );
+
+  try {
+    await program.account.credential.fetch(credentialAccount);
+  } catch (e) {
+    expect(e.toString()).to.contain("Account does not exist");
+  }
 };

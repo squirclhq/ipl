@@ -1,7 +1,5 @@
 // Big kudos to https://github.com/GuidoDipietro/solana-ed25519-secp256k1-sig-verification/blob/master/programs/solana-ed25519-sig-verification/src/lib.rs
 
-use std::fmt::format;
-
 use anchor_lang::{
     prelude::*,
     solana_program::{
@@ -84,6 +82,17 @@ pub fn get_default_update_credential_message(
     format!(
         "I am updating the {} credential issued to {} by {}. New uri: {}. New hash: {}.",
         credential_id, subject_did, issuer_did, uri, hash,
+    )
+}
+
+pub fn get_default_revoke_credential_message(
+    credential_id: &String,
+    issuer_did: &String,
+    subject_did: &String,
+) -> String {
+    format!(
+        "I am revoking the {} credential issued to {} by {}.",
+        credential_id, subject_did, issuer_did
     )
 }
 

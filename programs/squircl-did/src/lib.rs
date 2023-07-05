@@ -84,9 +84,10 @@ pub mod squircl_did {
     }
 
     pub fn revoke_credential(
-        _ctx: Context<RevokeCredential>,
-        _credential_id: String,
+        ctx: Context<RevokeCredential>,
+        credential_id: String,
+        issuer_sig: Sig,
     ) -> Result<()> {
-        revoke_credential_handler()
+        revoke_credential_handler(ctx, credential_id, issuer_sig)
     }
 }

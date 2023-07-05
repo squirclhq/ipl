@@ -628,3 +628,88 @@ export const updateCredentialSol = async (
 
   return sig;
 };
+
+export const revokeCredentialEvm = async (
+  program: anchor.Program<SquirclDid>,
+  issuerDidAccount: anchor.web3.PublicKey,
+  subjectDidAccount: anchor.web3.PublicKey,
+  credentialAccount: anchor.web3.PublicKey,
+  payer: any,
+  issuerEthSigner: HDNodeWallet,
+  issuerSignature: Uint8Array,
+  issuerRecoveryId: number,
+  issuerActualMessage: Buffer,
+  credentialId: string
+) => {
+  const sig = await program.methods
+    .revokeCredential(credentialId, {
+      eth: {
+        ethSig: {
+          addressBase58: base58.encode(
+            arrayify(issuerEthSigner.address.toLowerCase())
+          ),
+          sigBase58: base58.encode(issuerSignature),
+          recoveryId: issuerRecoveryId,
+        },
+        index: 0,
+      },
+    })
+    .accounts({
+      credential: credentialAccount,
+      issuerDid: issuerDidAccount,
+      subjectDid: subjectDidAccount,
+      payer: payer.publicKey,
+      ixSysvar: anchor.web3.SYSVAR_INSTRUCTIONS_PUBKEY,
+    })
+    .preInstructions([
+      anchor.web3.Secp256k1Program.createInstructionWithEthAddress({
+        ethAddress: issuerEthSigner.address.toLowerCase().slice(2),
+        message: issuerActualMessage,
+        signature: issuerSignature,
+        recoveryId: issuerRecoveryId,
+      }),
+    ])
+    .rpc();
+
+  return sig;
+};
+
+export const revokeCredentialSol = async (
+  program: anchor.Program<SquirclDid>,
+  issuerDidAccount: anchor.web3.PublicKey,
+  subjectDidAccount: anchor.web3.PublicKey,
+  credentialAccount: anchor.web3.PublicKey,
+  payer: any,
+  issuerAddress: anchor.web3.PublicKey,
+  issuerSignature: Uint8Array,
+  issuerMessageEncoded: Uint8Array,
+  credentialId: string
+) => {
+  const sig = await program.methods
+    .revokeCredential(credentialId, {
+      sol: {
+        solSig: {
+          addressBase58: bs58.encode(issuerAddress.toBuffer()),
+          sigBase58: bs58.encode(issuerSignature),
+        },
+        index: 0,
+      },
+    })
+    .accounts({
+      credential: credentialAccount,
+      issuerDid: issuerDidAccount,
+      subjectDid: subjectDidAccount,
+      payer: payer.publicKey,
+      ixSysvar: anchor.web3.SYSVAR_INSTRUCTIONS_PUBKEY,
+    })
+    .preInstructions([
+      anchor.web3.Ed25519Program.createInstructionWithPublicKey({
+        publicKey: issuerAddress.toBytes(),
+        message: issuerMessageEncoded,
+        signature: issuerSignature,
+      }),
+    ])
+    .rpc();
+
+  return sig;
+};
