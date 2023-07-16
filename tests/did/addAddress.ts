@@ -20,13 +20,15 @@ export const addAddressEth = async (
   program: Program<SquirclDid>,
   payer: any
 ) => {
+  const nonce = Math.floor(Date.now() / 1000);
+
   const didStr = generateRandomDID();
 
   const didAccount = getDIDAccount(didStr, program);
 
   const ethSigner = ethers.Wallet.createRandom();
 
-  const message = `I am creating a new Squircl DID with the address ${ethSigner.address.toLowerCase()}`;
+  const message = `I am creating a new Squircl DID with the address ${ethSigner.address.toLowerCase()}. Nonce: ${nonce}`;
 
   const { actual_message, signature, recoveryId } = await signEthMessage(
     message,
@@ -41,13 +43,14 @@ export const addAddressEth = async (
     recoveryId,
     didAccount,
     actual_message,
-    payer
+    payer,
+    nonce
   );
 
   const newEthSigner = ethers.Wallet.createRandom();
 
-  const newAddressMessageAsNewAddress = `I am adding myself to the Squircl DID with the address ${newEthSigner.address.toLowerCase()}`;
-  const newAddressMessageAsController = `I am adding ${newEthSigner.address.toLowerCase()} to the Squircl DID with the address ${ethSigner.address.toLowerCase()}`;
+  const newAddressMessageAsNewAddress = `I am adding myself to the Squircl DID with the address ${newEthSigner.address.toLowerCase()}. Nonce: ${nonce}`;
+  const newAddressMessageAsController = `I am adding ${newEthSigner.address.toLowerCase()} to the Squircl DID with the address ${ethSigner.address.toLowerCase()}. Nonce: ${nonce}`;
 
   const {
     actual_message: newAddressActualMessage,
@@ -74,10 +77,11 @@ export const addAddressEth = async (
     newAddressSignature,
     newAddressRecoveryId,
     controllerActualMessage,
-    newAddressActualMessage
+    newAddressActualMessage,
+    nonce
   );
 
-  console.log("add address sig", sig);
+  // console.log("add address sig", sig);
 
   const didAccountData = await program.account.did.fetch(didAccount);
 
@@ -94,8 +98,8 @@ export const addAddressEth = async (
 
   const keypair = anchor.web3.Keypair.generate();
 
-  const newAddressMessageAsNewAddressSOL = `I am adding myself to the Squircl DID with the address ${keypair.publicKey.toBase58()}`;
-  const newAddressMessageAsControllerSOL = `I am adding ${keypair.publicKey.toBase58()} to the Squircl DID with the address ${ethSigner.address.toLocaleLowerCase()}`;
+  const newAddressMessageAsNewAddressSOL = `I am adding myself to the Squircl DID with the address ${keypair.publicKey.toBase58()}. Nonce; ${nonce}`;
+  const newAddressMessageAsControllerSOL = `I am adding ${keypair.publicKey.toBase58()} to the Squircl DID with the address ${ethSigner.address.toLocaleLowerCase()}. Nonce: ${nonce}`;
 
   const newMessageEncoded = Uint8Array.from(
     Buffer.from(newAddressMessageAsNewAddressSOL)
@@ -123,10 +127,11 @@ export const addAddressEth = async (
     controllerActualMessageSOL,
     keypair.publicKey,
     newAddressSOLSignature,
-    newMessageEncoded
+    newMessageEncoded,
+    nonce
   );
 
-  console.log("add address sig", sigSOL);
+  // console.log("add address sig", sigSOL);
 
   const didAccountDataSOL = await program.account.did.fetch(didAccount);
 
@@ -145,13 +150,15 @@ export const addAddressSol = async (
   program: Program<SquirclDid>,
   payer: any
 ) => {
+  const nonce = Math.floor(Date.now() / 1000);
+
   const didStr = generateRandomDID();
 
   const didAccount = getDIDAccount(didStr, program);
 
   const controllerKeypair = anchor.web3.Keypair.generate();
 
-  const message = `I am creating a new Squircl DID with the address ${controllerKeypair.publicKey.toBase58()}`;
+  const message = `I am creating a new Squircl DID with the address ${controllerKeypair.publicKey.toBase58()}. Nonce: ${nonce}`;
 
   const messageEncoded = Uint8Array.from(Buffer.from(message));
 
@@ -167,13 +174,14 @@ export const addAddressSol = async (
     controllerSignature,
     messageEncoded,
     didAccount,
-    payer
+    payer,
+    nonce
   );
 
   const newEthSigner = ethers.Wallet.createRandom();
 
-  const newAddressMessageAsNewAddress = `I am adding myself to the Squircl DID with the address ${newEthSigner.address.toLowerCase()}`;
-  const newAddressMessageAsController = `I am adding ${newEthSigner.address.toLowerCase()} to the Squircl DID with the address ${controllerKeypair.publicKey.toBase58()}`;
+  const newAddressMessageAsNewAddress = `I am adding myself to the Squircl DID with the address ${newEthSigner.address.toLowerCase()}. Nonce: ${nonce}`;
+  const newAddressMessageAsController = `I am adding ${newEthSigner.address.toLowerCase()} to the Squircl DID with the address ${controllerKeypair.publicKey.toBase58()}. Nonce: ${nonce}`;
 
   const newAddressMessageAsControllerEncoded = Uint8Array.from(
     Buffer.from(newAddressMessageAsController)
@@ -202,10 +210,11 @@ export const addAddressSol = async (
     newEthSigner,
     newAddressSignature,
     newAddressRecoveryId,
-    newAddressActualMessage
+    newAddressActualMessage,
+    nonce
   );
 
-  console.log("add address sig", sigEVM);
+  // console.log("add address sig", sigEVM);
 
   const didAccountData = await program.account.did.fetch(didAccount);
 
@@ -221,8 +230,8 @@ export const addAddressSol = async (
 
   const keypair = anchor.web3.Keypair.generate();
 
-  const newAddressMessageAsNewAddressSOL = `I am adding myself to the Squircl DID with the address ${keypair.publicKey.toBase58()}`;
-  const newAddressMessageAsControllerSOL = `I am adding ${keypair.publicKey.toBase58()} to the Squircl DID with the address ${controllerKeypair.publicKey.toBase58()}`;
+  const newAddressMessageAsNewAddressSOL = `I am adding myself to the Squircl DID with the address ${keypair.publicKey.toBase58()}. Nonce: ${nonce}`;
+  const newAddressMessageAsControllerSOL = `I am adding ${keypair.publicKey.toBase58()} to the Squircl DID with the address ${controllerKeypair.publicKey.toBase58()}. Nonce: ${nonce}`;
 
   const newMessageEncoded = Uint8Array.from(
     Buffer.from(newAddressMessageAsNewAddressSOL)
@@ -252,10 +261,11 @@ export const addAddressSol = async (
     newAddressMessageAsControllerSOLEncoded,
     keypair.publicKey,
     newAddressSOLSignature,
-    newMessageEncoded
+    newMessageEncoded,
+    nonce
   );
 
-  console.log("add address sig", sigSOL);
+  // console.log("add address sig", sigSOL);
 
   const didAccountDataSOL = await program.account.did.fetch(didAccount);
 

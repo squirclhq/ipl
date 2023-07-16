@@ -221,6 +221,14 @@ impl SolSig {
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
 pub enum Sig {
-    Eth { eth_sig: EthSig, index: u8 },
-    Sol { sol_sig: SolSig, index: u8 },
+    Eth {
+        eth_sig: EthSig,
+        index: u8,
+        nonce: i64,
+    },
+    Sol {
+        sol_sig: SolSig,
+        index: u8,
+        nonce: i64,
+    },
 }

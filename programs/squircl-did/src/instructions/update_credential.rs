@@ -24,6 +24,8 @@ pub fn update_credential_handler(
 ) -> Result<()> {
     let clock: Clock = Clock::get()?;
 
+    let timestamp_1_hour_ago = clock.unix_timestamp - 3600;
+
     let credential = &mut ctx.accounts.credential;
     let issuer_did = &ctx.accounts.issuer_did;
     let subject_did = &ctx.accounts.subject_did;
@@ -34,7 +36,13 @@ pub fn update_credential_handler(
     );
 
     match issuer_sig {
-        Sig::Eth { eth_sig, index } => {
+        Sig::Eth {
+            eth_sig,
+            index,
+            nonce,
+        } => {
+            require!(nonce > timestamp_1_hour_ago, SquirclErrorCode::NonceExpired);
+
             let controller_address_sign_ix =
                 load_instruction_at_checked(index.try_into().unwrap(), &ctx.accounts.ix_sysvar)?;
 
@@ -44,6 +52,7 @@ pub fn update_credential_handler(
                 &subject_did.did,
                 &uri,
                 &credential_hash,
+                nonce,
             );
 
             eth_sig.verify(&controller_address_sign_ix, issue_credential_message)?;
@@ -58,7 +67,13 @@ pub fn update_credential_handler(
             }
         }
 
-        Sig::Sol { sol_sig, index } => {
+        Sig::Sol {
+            sol_sig,
+            index,
+            nonce,
+        } => {
+            require!(nonce > timestamp_1_hour_ago, SquirclErrorCode::NonceExpired);
+
             let controller_address_sign_ix =
                 load_instruction_at_checked(index.try_into().unwrap(), &ctx.accounts.ix_sysvar)?;
 
@@ -68,6 +83,7 @@ pub fn update_credential_handler(
                 &subject_did.did,
                 &uri,
                 &credential_hash,
+                nonce,
             );
 
             sol_sig.verify(&controller_address_sign_ix, issue_credential_message)?;

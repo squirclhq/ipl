@@ -27,38 +27,46 @@ pub fn get_ethereum_message_hash(message: String) -> Vec<u8> {
     .concat()
 }
 
-pub fn get_default_create_message(address: String) -> String {
+pub fn get_default_create_message(address: String, nonce: i64) -> String {
     format!(
-        "I am creating a new Squircl DID with the address {}",
-        address,
+        "I am creating a new Squircl DID with the address {}. Nonce: {}",
+        address, nonce
     )
 }
 
-pub fn get_default_add_message_as_controller(controller: String, new_address: String) -> String {
+pub fn get_default_add_message_as_controller(
+    controller: String,
+    new_address: String,
+    nonce: i64,
+) -> String {
     format!(
-        "I am adding {} to the Squircl DID with the address {}",
-        new_address, controller
+        "I am adding {} to the Squircl DID with the address {}. Nonce: {}",
+        new_address, controller, nonce
     )
 }
 
-pub fn get_default_add_message_as_new_address(new_address: String) -> String {
+pub fn get_default_add_message_as_new_address(new_address: String, nonce: i64) -> String {
     format!(
-        "I am adding myself to the Squircl DID with the address {}",
-        new_address
+        "I am adding myself to the Squircl DID with the address {}. Nonce: {}",
+        new_address, nonce
     )
 }
 
-pub fn get_default_remove_message_as_address(address: String) -> String {
+pub fn get_default_remove_message_as_address(address: String, nonce: i64) -> String {
     format!(
-        "I am removing myself from the Squircl DID with the address {}",
-        address
+        "I am removing myself from the Squircl DID with the address {}. Nonce: {}",
+        address, nonce
     )
 }
 
-pub fn get_default_remove_message_as_controller(controller: String, address: String) -> String {
+pub fn get_default_remove_message_as_controller(
+    controller: String,
+    address: String,
+    nonce: i64,
+) -> String {
     format!(
-        "I am removing {} from the Squircl DID with the address {}",
-        address, controller
+        "I am removing {} from the Squircl DID with the address {}. Nonce: {}",
+        address, controller, nonce
     )
 }
 
@@ -68,8 +76,9 @@ pub fn get_default_issue_credential_message(
     subject_did: &String,
     uri: &String,
     hash: &String,
+    nonce: i64,
 ) -> String {
-    format!("I am issuing a {} credential to {} for the Squircl DID with the DID {}. Uri: {}. Hash: {}.", credential_id, subject_did, issuer_did, uri, hash)
+    format!("I am issuing a {} credential to {} for the Squircl DID with the DID {}. Uri: {}. Hash: {}. Nonce: {}", credential_id, subject_did, issuer_did, uri, hash, nonce)
 }
 
 pub fn get_default_update_credential_message(
@@ -78,10 +87,11 @@ pub fn get_default_update_credential_message(
     subject_did: &String,
     uri: &String,
     hash: &String,
+    nonce: i64,
 ) -> String {
     format!(
-        "I am updating the {} credential issued to {} by {}. New uri: {}. New hash: {}.",
-        credential_id, subject_did, issuer_did, uri, hash,
+        "I am updating the {} credential issued to {} by {}. New uri: {}. New hash: {}. Nonce: {}",
+        credential_id, subject_did, issuer_did, uri, hash, nonce
     )
 }
 
@@ -89,10 +99,11 @@ pub fn get_default_revoke_credential_message(
     credential_id: &String,
     issuer_did: &String,
     subject_did: &String,
+    nonce: i64,
 ) -> String {
     format!(
-        "I am revoking the {} credential issued to {} by {}.",
-        credential_id, subject_did, issuer_did
+        "I am revoking the {} credential issued to {} by {}. Nonce: {}",
+        credential_id, subject_did, issuer_did, nonce
     )
 }
 

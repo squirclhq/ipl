@@ -18,13 +18,15 @@ export const removeAddressTest = async (
   program: Program<SquirclDid>,
   payer: any
 ) => {
+  const nonce = Math.floor(Date.now() / 1000);
+
   const didStr = generateRandomDID();
 
   const didAccount = getDIDAccount(didStr, program);
 
   const ethSigner = ethers.Wallet.createRandom();
 
-  const message = `I am creating a new Squircl DID with the address ${ethSigner.address.toLowerCase()}`;
+  const message = `I am creating a new Squircl DID with the address ${ethSigner.address.toLowerCase()}. Nonce: ${nonce}`;
 
   const { actual_message, signature, recoveryId } = await signEthMessage(
     message,
@@ -39,13 +41,14 @@ export const removeAddressTest = async (
     recoveryId,
     didAccount,
     actual_message,
-    payer
+    payer,
+    nonce
   );
 
   const newEthSigner = ethers.Wallet.createRandom();
 
-  const newAddressMessageAsNewAddress = `I am adding myself to the Squircl DID with the address ${newEthSigner.address.toLowerCase()}`;
-  const newAddressMessageAsController = `I am adding ${newEthSigner.address.toLowerCase()} to the Squircl DID with the address ${ethSigner.address.toLowerCase()}`;
+  const newAddressMessageAsNewAddress = `I am adding myself to the Squircl DID with the address ${newEthSigner.address.toLowerCase()}. Nonce: ${nonce}`;
+  const newAddressMessageAsController = `I am adding ${newEthSigner.address.toLowerCase()} to the Squircl DID with the address ${ethSigner.address.toLowerCase()}. Nonce: ${nonce}`;
 
   const {
     actual_message: newAddressActualMessage,
@@ -71,10 +74,11 @@ export const removeAddressTest = async (
     newAddressSignature,
     newAddressRecoveryId,
     controllerActualMessage,
-    newAddressActualMessage
+    newAddressActualMessage,
+    nonce
   );
 
-  const removeAddressEVMAsEVMControllerMessage = `I am removing ${newEthSigner.address.toLowerCase()} from the Squircl DID with the address ${ethSigner.address.toLowerCase()}`;
+  const removeAddressEVMAsEVMControllerMessage = `I am removing ${newEthSigner.address.toLowerCase()} from the Squircl DID with the address ${ethSigner.address.toLowerCase()}. Nonce: ${nonce}`;
 
   const {
     actual_message: removeAddressEVMAsEVMControllerActualMessage,
@@ -92,7 +96,8 @@ export const removeAddressTest = async (
     removeAddressEVMAsEVMControllerRecoveryId,
     removeAddressEVMAsEVMControllerActualMessage,
     newEthSigner.address.toLowerCase(),
-    { evm: {} }
+    { evm: {} },
+    nonce
   );
 
   const didAccountData = await program.account.did.fetch(didAccount);
@@ -124,10 +129,11 @@ export const removeAddressTest = async (
     newAddressSignature2,
     newAddressRecoveryId2,
     controllerActualMessage2,
-    newAddressActualMessage2
+    newAddressActualMessage2,
+    nonce
   );
 
-  const removeAddressEVMAsSelfMessage = `I am removing myself from the Squircl DID with the address ${newEthSigner.address.toLowerCase()}`;
+  const removeAddressEVMAsSelfMessage = `I am removing myself from the Squircl DID with the address ${newEthSigner.address.toLowerCase()}. Nonce: ${nonce}`;
 
   const {
     actual_message: removeAddressEVMAsSelfActualMessage,
@@ -145,7 +151,8 @@ export const removeAddressTest = async (
     removeAddressEVMAsSelfRecoveryId,
     removeAddressEVMAsSelfActualMessage,
     newEthSigner.address.toLowerCase(),
-    { evm: {} }
+    { evm: {} },
+    nonce
   );
 
   const didAccountData2 = await program.account.did.fetch(didAccount);
@@ -157,8 +164,8 @@ export const removeAddressTest = async (
 
   const keypair = anchor.web3.Keypair.generate();
 
-  const newAddressMessageAsNewAddressSOL = `I am adding myself to the Squircl DID with the address ${keypair.publicKey.toBase58()}`;
-  const newAddressMessageAsControllerSOL = `I am adding ${keypair.publicKey.toBase58()} to the Squircl DID with the address ${ethSigner.address.toLocaleLowerCase()}`;
+  const newAddressMessageAsNewAddressSOL = `I am adding myself to the Squircl DID with the address ${keypair.publicKey.toBase58()}. Nonce: ${nonce}`;
+  const newAddressMessageAsControllerSOL = `I am adding ${keypair.publicKey.toBase58()} to the Squircl DID with the address ${ethSigner.address.toLocaleLowerCase()}. Nonce: ${nonce}`;
 
   const newMessageEncoded = Uint8Array.from(
     Buffer.from(newAddressMessageAsNewAddressSOL)
@@ -186,10 +193,11 @@ export const removeAddressTest = async (
     controllerActualMessageSOL,
     keypair.publicKey,
     newAddressSOLSignature,
-    newMessageEncoded
+    newMessageEncoded,
+    nonce
   );
 
-  const removeAddressSOLAsEVMControllerMessage = `I am removing ${keypair.publicKey.toBase58()} from the Squircl DID with the address ${ethSigner.address.toLowerCase()}`;
+  const removeAddressSOLAsEVMControllerMessage = `I am removing ${keypair.publicKey.toBase58()} from the Squircl DID with the address ${ethSigner.address.toLowerCase()}. Nonce: ${nonce}`;
 
   const {
     actual_message: removeAddressSOLAsEVMControllerActualMessage,
@@ -207,7 +215,8 @@ export const removeAddressTest = async (
     removeAddressSOLAsEVMControllerRecoveryId,
     removeAddressSOLAsEVMControllerActualMessage,
     keypair.publicKey.toBase58(),
-    { sol: {} }
+    { sol: {} },
+    nonce
   );
 
   const didAccountData3 = await program.account.did.fetch(didAccount);
@@ -242,12 +251,11 @@ export const removeAddressTest = async (
     controllerActualMessageSOL2,
     keypair.publicKey,
     newAddressSOLSignature2,
-    newMessageEncoded2
+    newMessageEncoded2,
+    nonce
   );
 
-  const removeAddressSOLAsSelfMessage = `I am removing myself from the Squircl DID with the address ${keypair.publicKey.toBase58()}`;
-
-  console.log(removeAddressSOLAsSelfMessage);
+  const removeAddressSOLAsSelfMessage = `I am removing myself from the Squircl DID with the address ${keypair.publicKey.toBase58()}. Nonce: ${nonce}`;
 
   const removeAddressSOLAsSelfMessageEncoded = Uint8Array.from(
     Buffer.from(removeAddressSOLAsSelfMessage)
@@ -267,7 +275,8 @@ export const removeAddressTest = async (
     removeAddressSOLAsSelfSignature,
     removeAddressSOLAsSelfMessageEncoded,
     keypair.publicKey.toBase58(),
-    { sol: {} }
+    { sol: {} },
+    nonce
   );
 
   const didAccountData4 = await program.account.did.fetch(didAccount);

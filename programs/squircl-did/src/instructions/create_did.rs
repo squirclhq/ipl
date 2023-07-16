@@ -1,3 +1,4 @@
+use crate::errors::SquirclErrorCode;
 use crate::state::{Address, Did, Role, Sig};
 use crate::utils::get_default_create_message;
 use anchor_lang::{
@@ -14,14 +15,22 @@ pub fn create_did_ix(ctx: Context<CreateDID>, did_str: String, sig: Sig) -> Resu
 
     let clock: Clock = Clock::get()?;
 
+    let timestamp_1_hour_ago = clock.unix_timestamp - 3600;
+
     match sig {
-        Sig::Eth { eth_sig, index } => {
+        Sig::Eth {
+            eth_sig,
+            index,
+            nonce,
+        } => {
+            require!(nonce > timestamp_1_hour_ago, SquirclErrorCode::NonceExpired);
+
             let ix: Instruction =
                 load_instruction_at_checked(index.try_into().unwrap(), &ctx.accounts.ix_sysvar)?;
 
             let eth_address_hex = eth_sig.get_eth_address_hex();
 
-            let new_did_message = get_default_create_message(eth_address_hex.clone());
+            let new_did_message = get_default_create_message(eth_address_hex.clone(), nonce);
 
             eth_sig.verify(&ix, new_did_message)?;
 
@@ -32,11 +41,17 @@ pub fn create_did_ix(ctx: Context<CreateDID>, did_str: String, sig: Sig) -> Resu
             ));
         }
 
-        Sig::Sol { sol_sig, index } => {
+        Sig::Sol {
+            sol_sig,
+            index,
+            nonce,
+        } => {
+            require!(nonce > timestamp_1_hour_ago, SquirclErrorCode::NonceExpired);
+
             let ix: Instruction =
                 load_instruction_at_checked(index.try_into().unwrap(), &ctx.accounts.ix_sysvar)?;
 
-            let new_did_message = get_default_create_message(sol_sig.address_base58.clone());
+            let new_did_message = get_default_create_message(sol_sig.address_base58.clone(), nonce);
 
             sol_sig.verify(&ix, new_did_message)?;
 

@@ -22,4 +22,6 @@ pub enum SquirclErrorCode {
     CredentialIsNotRevokable,
     #[msg("Address does not exist in DID")]
     AddressDoesNotExistInDID,
+    #[msg("Nonce expired")]
+    NonceExpired,
 }

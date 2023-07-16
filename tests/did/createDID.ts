@@ -19,7 +19,9 @@ export const createDIDEthereumTest = async (
 
   const ethSigner = ethers.Wallet.createRandom();
 
-  const message = `I am creating a new Squircl DID with the address ${ethSigner.address.toLowerCase()}`;
+  const nonce = Math.floor(Date.now() / 1000);
+
+  const message = `I am creating a new Squircl DID with the address ${ethSigner.address.toLowerCase()}. Nonce: ${nonce}`;
 
   const { actual_message, signature, recoveryId, full_sig_bytes } =
     await signEthMessage(message, ethSigner);
@@ -32,27 +34,28 @@ export const createDIDEthereumTest = async (
     recoveryId,
     didAccount,
     actual_message,
-    payer
+    payer,
+    nonce
   );
 
   const rawDIDAccountData = await program.provider.connection.getAccountInfo(
     didAccount
   );
 
-  console.log(
-    "raw did account data",
-    rawDIDAccountData.data.toString("base64")
-  );
+  // console.log(
+  //   "raw did account data",
+  //   rawDIDAccountData.data.toString("base64")
+  // );
 
   // convert the raw data to a did account
 
-  console.log(didAccount.toBase58());
+  // console.log(didAccount.toBase58());
 
-  console.log(program.coder.accounts.decode("Did", rawDIDAccountData.data));
+  // console.log(program.coder.accounts.decode("Did", rawDIDAccountData.data));
 
   const didAccountData = await program.account.did.fetch(didAccount);
 
-  console.log("did account data", didAccountData);
+  // console.log("did account data", didAccountData);
 
   expect(didAccountData.did).to.equal(didStr);
   expect(didAccountData.ethAddresses.length).to.equal(1);
@@ -74,8 +77,10 @@ export const createDIDSolTest = async (
 
   const didAccount = getDIDAccount(didStr, program);
 
+  const nonce = Math.floor(Date.now() / 1000);
+
   const keypair = anchor.web3.Keypair.generate();
-  const message = `I am creating a new Squircl DID with the address ${keypair.publicKey.toBase58()}`;
+  const message = `I am creating a new Squircl DID with the address ${keypair.publicKey.toBase58()}. Nonce: ${nonce}`;
 
   const messageEncoded = Uint8Array.from(Buffer.from(message));
 
@@ -88,10 +93,11 @@ export const createDIDSolTest = async (
     signature,
     messageEncoded,
     didAccount,
-    payer
+    payer,
+    nonce
   );
 
-  console.log("create did sol sig", sig);
+  // console.log("create did sol sig", sig);
 
   const didAccountData = await program.account.did.fetch(didAccount);
 
@@ -117,6 +123,8 @@ export const createDIDEvmTestInvalidSig = async (
 
   const ethSigner = ethers.Wallet.createRandom();
 
+  const nonce = Math.floor(Date.now() / 1000);
+
   const message = "random fake message, will cause invalid signature";
 
   const { actual_message, signature, recoveryId } = await signEthMessage(
@@ -133,7 +141,8 @@ export const createDIDEvmTestInvalidSig = async (
       recoveryId,
       didAccount,
       actual_message,
-      payer
+      payer,
+      nonce
     );
   } catch (e) {
     expect(e.toString()).to.equal(
@@ -155,6 +164,8 @@ export const createDIDSolTestInvalidSig = async (
   const message = "random fake message, will cause invalid signature";
   const messageEncoded = Uint8Array.from(Buffer.from(message));
 
+  const nonce = Math.floor(Date.now() / 1000);
+
   const signature = nacl.sign.detached(messageEncoded, keypair.secretKey);
 
   try {
@@ -165,7 +176,8 @@ export const createDIDSolTestInvalidSig = async (
       signature,
       messageEncoded,
       didAccount,
-      payer
+      payer,
+      nonce
     );
   } catch (e) {
     expect(e.toString()).to.equal(

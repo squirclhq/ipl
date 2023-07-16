@@ -25,6 +25,8 @@ export const issueCredentialEvmTest = async (
   program: Program<SquirclDid>,
   payer: any
 ) => {
+  const nonce = Math.floor(Date.now() / 1000);
+
   const issuerDidStr = generateRandomDID();
   const subjectDidStr = generateRandomDID();
 
@@ -34,8 +36,8 @@ export const issueCredentialEvmTest = async (
   const issuerEthSigner = ethers.Wallet.createRandom();
   const subjectEthSigner = ethers.Wallet.createRandom();
 
-  const issuerCreateMessage = `I am creating a new Squircl DID with the address ${issuerEthSigner.address.toLowerCase()}`;
-  const subjectCreateMessage = `I am creating a new Squircl DID with the address ${subjectEthSigner.address.toLowerCase()}`;
+  const issuerCreateMessage = `I am creating a new Squircl DID with the address ${issuerEthSigner.address.toLowerCase()}. Nonce: ${nonce}`;
+  const subjectCreateMessage = `I am creating a new Squircl DID with the address ${subjectEthSigner.address.toLowerCase()}. Nonce: ${nonce}`;
 
   const {
     actual_message: issuerCreateAcutalMessage,
@@ -57,7 +59,8 @@ export const issueCredentialEvmTest = async (
     issuerCreateRecoveryId,
     issuerDidAccount,
     issuerCreateAcutalMessage,
-    payer
+    payer,
+    nonce
   );
 
   await createDIDEVM(
@@ -68,7 +71,8 @@ export const issueCredentialEvmTest = async (
     subjectCreateRecoveryId,
     subjectDidAccount,
     subjectCreateAcutalMessage,
-    payer
+    payer,
+    nonce
   );
 
   const credentialId = "test-cred";
@@ -82,7 +86,7 @@ export const issueCredentialEvmTest = async (
     program
   );
 
-  const issueMessage = `I am issuing a ${credentialId} credential to ${subjectDidStr} for the Squircl DID with the DID ${issuerDidStr}. Uri: ${randomUri}. Hash: ${randomHash}.`;
+  const issueMessage = `I am issuing a ${credentialId} credential to ${subjectDidStr} for the Squircl DID with the DID ${issuerDidStr}. Uri: ${randomUri}. Hash: ${randomHash}. Nonce: ${nonce}`;
 
   const expiresAt = new Date().getTime() + 1000 * 60 * 60 * 24 * 365 * 10; // 10 years
 
@@ -107,7 +111,8 @@ export const issueCredentialEvmTest = async (
     randomHash,
     expiresAt,
     true,
-    true
+    true,
+    nonce
   );
 
   const credentialAccountData = await program.account.credential.fetch(
@@ -126,7 +131,7 @@ export const issueCredentialEvmTest = async (
   const updatedRandomUri = "https://example.com/credentials/456";
   const updatedRandomHash = "0x" + nacl.randomBytes(32).toString();
 
-  const updatedMessage = `I am updating the ${credentialId} credential issued to ${subjectDidStr} by ${issuerDidStr}. New uri: ${updatedRandomUri}. New hash: ${updatedRandomHash}.`;
+  const updatedMessage = `I am updating the ${credentialId} credential issued to ${subjectDidStr} by ${issuerDidStr}. New uri: ${updatedRandomUri}. New hash: ${updatedRandomHash}. Nonce: ${nonce}`;
 
   const updatedExpiresAt = new Date().getTime() + 1000 * 60 * 60 * 24 * 365 * 5; // 5 years
 
@@ -151,7 +156,8 @@ export const issueCredentialEvmTest = async (
     updatedRandomHash,
     updatedExpiresAt,
     true,
-    true
+    true,
+    nonce
   );
 
   const updatedAccountData = await program.account.credential.fetch(
@@ -167,7 +173,7 @@ export const issueCredentialEvmTest = async (
   expect(updatedAccountData.isMutable).to.equal(true);
   expect(updatedAccountData.isRevokable).to.equal(true);
 
-  const revokeMessage = `I am revoking the ${credentialId} credential issued to ${subjectDidStr} by ${issuerDidStr}.`;
+  const revokeMessage = `I am revoking the ${credentialId} credential issued to ${subjectDidStr} by ${issuerDidStr}. Nonce: ${nonce}`;
 
   const {
     actual_message: revokeActualMessage,
@@ -185,7 +191,8 @@ export const issueCredentialEvmTest = async (
     revokeSignature,
     revokeRecoveryId,
     revokeActualMessage,
-    credentialId
+    credentialId,
+    nonce
   );
 
   try {
@@ -199,6 +206,8 @@ export const issueCredentialSolTest = async (
   program: Program<SquirclDid>,
   payer: any
 ) => {
+  const nonce = Math.floor(Date.now() / 1000);
+
   const issuerDidStr = generateRandomDID();
   const subjectDidStr = generateRandomDID();
 
@@ -208,8 +217,8 @@ export const issueCredentialSolTest = async (
   const issuerKeypair = anchor.web3.Keypair.generate();
   const subjectKeypair = anchor.web3.Keypair.generate();
 
-  const issuerCreateMessage = `I am creating a new Squircl DID with the address ${issuerKeypair.publicKey.toString()}`;
-  const subjectCreateMessage = `I am creating a new Squircl DID with the address ${subjectKeypair.publicKey.toString()}`;
+  const issuerCreateMessage = `I am creating a new Squircl DID with the address ${issuerKeypair.publicKey.toString()}. Nonce: ${nonce}`;
+  const subjectCreateMessage = `I am creating a new Squircl DID with the address ${subjectKeypair.publicKey.toString()}. Nonce: ${nonce}`;
 
   const issuerCreateMessageEncoded = Uint8Array.from(
     Buffer.from(issuerCreateMessage)
@@ -234,7 +243,8 @@ export const issueCredentialSolTest = async (
     issuerSignature,
     issuerCreateMessageEncoded,
     issuerDidAccount,
-    payer
+    payer,
+    nonce
   );
 
   await createDIDSOL(
@@ -244,7 +254,8 @@ export const issueCredentialSolTest = async (
     subjectSignature,
     subjectCreateMessageEncoded,
     subjectDidAccount,
-    payer
+    payer,
+    nonce
   );
 
   const credentialId = "test-cred";
@@ -258,7 +269,7 @@ export const issueCredentialSolTest = async (
     program
   );
 
-  const issueMessage = `I am issuing a ${credentialId} credential to ${subjectDidStr} for the Squircl DID with the DID ${issuerDidStr}. Uri: ${randomUri}. Hash: ${randomHash}.`;
+  const issueMessage = `I am issuing a ${credentialId} credential to ${subjectDidStr} for the Squircl DID with the DID ${issuerDidStr}. Uri: ${randomUri}. Hash: ${randomHash}. Nonce: ${nonce}`;
   const issueMessageEncoded = Uint8Array.from(Buffer.from(issueMessage));
   const issueSignature = nacl.sign.detached(
     issueMessageEncoded,
@@ -281,7 +292,8 @@ export const issueCredentialSolTest = async (
     randomHash,
     expiresAt,
     true,
-    true
+    true,
+    nonce
   );
 
   const credentialAccountData = await program.account.credential.fetch(
@@ -300,7 +312,7 @@ export const issueCredentialSolTest = async (
   const updatedRandomUri = "https://example.com/credentials/456";
   const updatedRandomHash = "0x" + nacl.randomBytes(32).toString();
 
-  const updatedMessage = `I am updating the ${credentialId} credential issued to ${subjectDidStr} by ${issuerDidStr}. New uri: ${updatedRandomUri}. New hash: ${updatedRandomHash}.`;
+  const updatedMessage = `I am updating the ${credentialId} credential issued to ${subjectDidStr} by ${issuerDidStr}. New uri: ${updatedRandomUri}. New hash: ${updatedRandomHash}. Nonce: ${nonce}`;
   const updatedMessageEncoded = Uint8Array.from(Buffer.from(updatedMessage));
 
   const updatedSignature = nacl.sign.detached(
@@ -324,7 +336,8 @@ export const issueCredentialSolTest = async (
     updatedRandomHash,
     updatedExpiresAt,
     true,
-    true
+    true,
+    nonce
   );
 
   const updatedAccountData = await program.account.credential.fetch(
@@ -340,7 +353,7 @@ export const issueCredentialSolTest = async (
   expect(updatedAccountData.isMutable).to.equal(true);
   expect(updatedAccountData.isRevokable).to.equal(true);
 
-  const revokeMessage = `I am revoking the ${credentialId} credential issued to ${subjectDidStr} by ${issuerDidStr}.`;
+  const revokeMessage = `I am revoking the ${credentialId} credential issued to ${subjectDidStr} by ${issuerDidStr}. Nonce: ${nonce}`;
   const revokeMessageEncoded = Uint8Array.from(Buffer.from(revokeMessage));
 
   const revokeSignature = nacl.sign.detached(
@@ -357,7 +370,8 @@ export const issueCredentialSolTest = async (
     issuerKeypair.publicKey,
     revokeSignature,
     revokeMessageEncoded,
-    credentialId
+    credentialId,
+    nonce
   );
 
   try {

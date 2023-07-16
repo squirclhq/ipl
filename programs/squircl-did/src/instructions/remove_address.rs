@@ -22,8 +22,16 @@ pub fn remove_address_ix(
 
     let clock: Clock = Clock::get()?;
 
+    let timestamp_1_hour_ago = clock.unix_timestamp - 3600;
+
     match remover_sig {
-        Sig::Eth { eth_sig, index } => {
+        Sig::Eth {
+            eth_sig,
+            index,
+            nonce,
+        } => {
+            require!(nonce > timestamp_1_hour_ago, SquirclErrorCode::NonceExpired);
+
             let remover_sign_ix =
                 load_instruction_at_checked(index.try_into().unwrap(), &ctx.accounts.ix_sysvar)?;
 
@@ -52,9 +60,9 @@ pub fn remove_address_ix(
             }
 
             let message = if is_self_remove {
-                get_default_remove_message_as_address(eth_address)
+                get_default_remove_message_as_address(eth_address, nonce)
             } else {
-                get_default_remove_message_as_controller(eth_address, address.clone())
+                get_default_remove_message_as_controller(eth_address, address.clone(), nonce)
             };
 
             msg!("message: {}", message);
@@ -98,7 +106,13 @@ pub fn remove_address_ix(
                 }
             }
         }
-        Sig::Sol { sol_sig, index } => {
+        Sig::Sol {
+            sol_sig,
+            index,
+            nonce,
+        } => {
+            require!(nonce > timestamp_1_hour_ago, SquirclErrorCode::NonceExpired);
+
             let remover_sign_ix =
                 load_instruction_at_checked(index.try_into().unwrap(), &ctx.accounts.ix_sysvar)?;
 
@@ -127,9 +141,9 @@ pub fn remove_address_ix(
             }
 
             let message = if is_self_remove {
-                get_default_remove_message_as_address(sol_address)
+                get_default_remove_message_as_address(sol_address, nonce)
             } else {
-                get_default_remove_message_as_controller(sol_address, address.clone())
+                get_default_remove_message_as_controller(sol_address, address.clone(), nonce)
             };
 
             msg!("message: {}", message);

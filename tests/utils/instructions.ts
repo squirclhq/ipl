@@ -13,7 +13,8 @@ export const createDIDEVM = async (
   recoveryId: number,
   didAccount: anchor.web3.PublicKey,
   actual_message: Buffer,
-  payer: any
+  payer: any,
+  nonce: number
 ) => {
   // console.log(didStr);
   // console.log({
@@ -42,6 +43,7 @@ export const createDIDEVM = async (
           recoveryId: recoveryId,
         },
         index: 0,
+        nonce: new anchor.BN(nonce),
       },
     })
     .accounts({
@@ -91,7 +93,8 @@ export const createDIDSOL = async (
   signature: Uint8Array,
   messageEncoded: Uint8Array,
   didAccount: anchor.web3.PublicKey,
-  payer: any
+  payer: any,
+  nonce: number
 ) => {
   const sig = await program.methods
     .createDid(didStr, {
@@ -101,6 +104,7 @@ export const createDIDSOL = async (
           sigBase58: bs58.encode(signature),
         },
         index: 0,
+        nonce: new anchor.BN(nonce),
       },
     })
     .accounts({
@@ -132,7 +136,8 @@ export const addAddressEVMwithEVMController = async (
   newAddressSignature: Uint8Array,
   newAddressRecoveryId: number,
   controllerActualMessage: Buffer,
-  newAddressActualMessage: Buffer
+  newAddressActualMessage: Buffer,
+  nonce: number
 ) => {
   const sig = await program.methods
     .addAddress(
@@ -147,6 +152,7 @@ export const addAddressEVMwithEVMController = async (
             recoveryId: newAddressRecoveryId,
           },
           index: 1,
+          nonce: new anchor.BN(nonce),
         },
       },
       {
@@ -159,6 +165,7 @@ export const addAddressEVMwithEVMController = async (
             recoveryId: controllerRecoveryId,
           },
           index: 0,
+          nonce: new anchor.BN(nonce),
         },
       }
     )
@@ -197,7 +204,8 @@ export const addAddressEVMwithSOLController = async (
   newEthSigner: HDNodeWallet,
   newAddressSignature: Uint8Array,
   newAddressRecoveryId: number,
-  newAddressActualMessage: Buffer
+  newAddressActualMessage: Buffer,
+  nonce: number
 ) => {
   const sig = await program.methods
     .addAddress(
@@ -212,6 +220,7 @@ export const addAddressEVMwithSOLController = async (
             recoveryId: newAddressRecoveryId,
           },
           index: 0,
+          nonce: new anchor.BN(nonce),
         },
       },
       {
@@ -221,6 +230,7 @@ export const addAddressEVMwithSOLController = async (
             sigBase58: bs58.encode(controllerSignature),
           },
           index: 1,
+          nonce: new anchor.BN(nonce),
         },
       }
     )
@@ -258,8 +268,10 @@ export const addAddressSOLWithEVMController = async (
   actual_message: Buffer,
   newAddress: anchor.web3.PublicKey,
   newSignature: Uint8Array,
-  newMessageEncoded: Uint8Array
+  newMessageEncoded: Uint8Array,
+  nonce: number
 ) => {
+  console.log("nonce", nonce);
   const sig = await program.methods
     .addAddress(
       didStr,
@@ -270,6 +282,7 @@ export const addAddressSOLWithEVMController = async (
             sigBase58: bs58.encode(newSignature),
           },
           index: 1,
+          nonce: new anchor.BN(nonce),
         },
       },
       {
@@ -283,6 +296,7 @@ export const addAddressSOLWithEVMController = async (
           },
         },
         index: 0,
+        nonce: new anchor.BN(nonce),
       }
     )
     .accounts({
@@ -318,7 +332,8 @@ export const addAddrsesSOLWithSOLController = async (
   controllerMessageEncoded: Uint8Array,
   newAddress: anchor.web3.PublicKey,
   newSignature: Uint8Array,
-  newMessageEncoded: Uint8Array
+  newMessageEncoded: Uint8Array,
+  nonce: number
 ) => {
   const sig = await program.methods
     .addAddress(
@@ -330,6 +345,7 @@ export const addAddrsesSOLWithSOLController = async (
             sigBase58: bs58.encode(newSignature),
           },
           index: 1,
+          nonce: new anchor.BN(nonce),
         },
       },
       {
@@ -339,6 +355,7 @@ export const addAddrsesSOLWithSOLController = async (
             sigBase58: bs58.encode(controllerSignature),
           },
           index: 0,
+          nonce: new anchor.BN(nonce),
         },
       }
     )
@@ -374,7 +391,8 @@ export const removeAddressEVMRemover = async (
   recoveryId: number,
   actual_message: Buffer,
   addressToRemove: string,
-  toRemoveChain: any
+  toRemoveChain: any,
+  nonce: number
 ) => {
   const sig = await program.methods
     .removeAddress(didStr, toRemoveChain, addressToRemove, {
@@ -387,6 +405,7 @@ export const removeAddressEVMRemover = async (
           recoveryId: recoveryId,
         },
         index: 0,
+        nonce: new anchor.BN(nonce),
       },
     })
     .accounts({
@@ -416,7 +435,8 @@ export const removeAddressSOLRemover = async (
   removerSignature: Uint8Array,
   removerMessageEncoded: Uint8Array,
   addressToRemove: string,
-  toRemoveChain: any
+  toRemoveChain: any,
+  nonce: number
 ) => {
   const sig = await program.methods
     .removeAddress(didStr, toRemoveChain, addressToRemove, {
@@ -426,6 +446,7 @@ export const removeAddressSOLRemover = async (
           sigBase58: bs58.encode(removerSignature),
         },
         index: 0,
+        nonce: new anchor.BN(nonce),
       },
     })
     .accounts({
@@ -460,7 +481,8 @@ export const issueCredentialEth = async (
   hash: string,
   expiresAt: number,
   isMutable: boolean,
-  isRevokable: boolean
+  isRevokable: boolean,
+  nonce: number
 ) => {
   const sig = await program.methods
     .issueCredential(
@@ -480,6 +502,7 @@ export const issueCredentialEth = async (
             recoveryId: issuerRecoveryId,
           },
           index: 0,
+          nonce: new anchor.BN(nonce),
         },
       }
     )
@@ -517,7 +540,8 @@ export const issueCredentialSol = async (
   hash: string,
   expiresAt: number,
   isMutable: boolean,
-  isRevokable: boolean
+  isRevokable: boolean,
+  nonce: number
 ) => {
   const sig = await program.methods
     .issueCredential(
@@ -534,6 +558,7 @@ export const issueCredentialSol = async (
             sigBase58: bs58.encode(issuerSignature),
           },
           index: 0,
+          nonce: new anchor.BN(nonce),
         },
       }
     )
@@ -571,7 +596,8 @@ export const updateCredentialEth = async (
   hash: string,
   expiresAt: number,
   isMutable: boolean,
-  isRevokable: boolean
+  isRevokable: boolean,
+  nonce: number
 ) => {
   const sig = await program.methods
     .updateCredential(
@@ -591,6 +617,7 @@ export const updateCredentialEth = async (
             recoveryId: issuerRecoveryId,
           },
           index: 0,
+          nonce: new anchor.BN(nonce),
         },
       }
     )
@@ -628,7 +655,8 @@ export const updateCredentialSol = async (
   hash: string,
   expiresAt: number,
   isMutable: boolean,
-  isRevokable: boolean
+  isRevokable: boolean,
+  nonce: number
 ) => {
   const sig = await program.methods
     .updateCredential(
@@ -645,6 +673,7 @@ export const updateCredentialSol = async (
             sigBase58: bs58.encode(issuerSignature),
           },
           index: 0,
+          nonce: new anchor.BN(nonce),
         },
       }
     )
@@ -677,7 +706,8 @@ export const revokeCredentialEvm = async (
   issuerSignature: Uint8Array,
   issuerRecoveryId: number,
   issuerActualMessage: Buffer,
-  credentialId: string
+  credentialId: string,
+  nonce: number
 ) => {
   const sig = await program.methods
     .revokeCredential(credentialId, {
@@ -690,6 +720,7 @@ export const revokeCredentialEvm = async (
           recoveryId: issuerRecoveryId,
         },
         index: 0,
+        nonce: new anchor.BN(nonce),
       },
     })
     .accounts({
@@ -721,7 +752,8 @@ export const revokeCredentialSol = async (
   issuerAddress: anchor.web3.PublicKey,
   issuerSignature: Uint8Array,
   issuerMessageEncoded: Uint8Array,
-  credentialId: string
+  credentialId: string,
+  nonce: number
 ) => {
   const sig = await program.methods
     .revokeCredential(credentialId, {
@@ -731,6 +763,7 @@ export const revokeCredentialSol = async (
           sigBase58: bs58.encode(issuerSignature),
         },
         index: 0,
+        nonce: new anchor.BN(nonce),
       },
     })
     .accounts({

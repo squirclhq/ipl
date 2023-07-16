@@ -21,13 +21,25 @@ pub fn add_address_ix(
 
     let clock: Clock = Clock::get()?;
 
-    let new_address = if let Sig::Eth { eth_sig, index: _ } = &new_address_sig {
+    let timestamp_1_hour_ago = clock.unix_timestamp - 3600;
+
+    let new_address = if let Sig::Eth {
+        eth_sig,
+        index: _,
+        nonce: _,
+    } = &new_address_sig
+    {
         Address::new_eth(
             eth_sig.get_eth_address_hex(),
             clock.unix_timestamp,
             Role::Admin,
         )
-    } else if let Sig::Sol { sol_sig, index: _ } = &new_address_sig {
+    } else if let Sig::Sol {
+        sol_sig,
+        index: _,
+        nonce: _,
+    } = &new_address_sig
+    {
         Address::new_sol(
             sol_sig.address_base58.clone(),
             clock.unix_timestamp,
@@ -38,13 +50,22 @@ pub fn add_address_ix(
     };
 
     match controller_sig {
-        Sig::Eth { eth_sig, index } => {
+        Sig::Eth {
+            eth_sig,
+            index,
+            nonce,
+        } => {
+            msg!("Index: {}", index);
+            msg!("Nonce: {}", nonce);
+            require!(nonce > timestamp_1_hour_ago, SquirclErrorCode::NonceExpired);
+
             let controller_address_sign_ix =
                 load_instruction_at_checked(index.try_into().unwrap(), &ctx.accounts.ix_sysvar)?;
 
             let add_message_as_controller = get_default_add_message_as_controller(
                 eth_sig.get_eth_address_hex(),
                 new_address.address.clone(),
+                nonce,
             );
 
             eth_sig.verify(&controller_address_sign_ix, add_message_as_controller)?;
@@ -67,13 +88,20 @@ pub fn add_address_ix(
                 panic!("{}", SquirclErrorCode::AddressDoesNotExistInDID)
             }
         }
-        Sig::Sol { sol_sig, index } => {
+        Sig::Sol {
+            sol_sig,
+            index,
+            nonce,
+        } => {
+            require!(nonce > timestamp_1_hour_ago, SquirclErrorCode::NonceExpired);
+
             let controller_address_sign_ix =
                 load_instruction_at_checked(index.try_into().unwrap(), &ctx.accounts.ix_sysvar)?;
 
             let add_message_as_controller = get_default_add_message_as_controller(
                 sol_sig.address_base58.clone(),
                 new_address.address.clone(),
+                nonce,
             );
 
             sol_sig.verify(&controller_address_sign_ix, add_message_as_controller)?;
@@ -99,14 +127,20 @@ pub fn add_address_ix(
     }
 
     match new_address_sig {
-        Sig::Eth { eth_sig, index } => {
+        Sig::Eth {
+            eth_sig,
+            index,
+            nonce,
+        } => {
+            require!(nonce > timestamp_1_hour_ago, SquirclErrorCode::NonceExpired);
+
             let new_address_sign_ix =
                 load_instruction_at_checked(index.try_into().unwrap(), &ctx.accounts.ix_sysvar)?;
 
             let new_address_hex = eth_sig.get_eth_address_hex();
 
             let add_message_as_new_adress =
-                get_default_add_message_as_new_address(new_address_hex.clone());
+                get_default_add_message_as_new_address(new_address_hex.clone(), nonce);
 
             eth_sig.verify(&new_address_sign_ix, add_message_as_new_adress)?;
 
@@ -118,14 +152,20 @@ pub fn add_address_ix(
 
             did.add_address_eth(clock.clone(), new_address);
         }
-        Sig::Sol { sol_sig, index } => {
+        Sig::Sol {
+            sol_sig,
+            index,
+            nonce,
+        } => {
+            require!(nonce > timestamp_1_hour_ago, SquirclErrorCode::NonceExpired);
+
             let new_address_sign_ix =
                 load_instruction_at_checked(index.try_into().unwrap(), &ctx.accounts.ix_sysvar)?;
 
             let new_address_hex = sol_sig.address_base58.clone();
 
             let add_message_as_new_adress =
-                get_default_add_message_as_new_address(new_address_hex.clone());
+                get_default_add_message_as_new_address(new_address_hex.clone(), nonce);
 
             sol_sig.verify(&new_address_sign_ix, add_message_as_new_adress)?;
 
