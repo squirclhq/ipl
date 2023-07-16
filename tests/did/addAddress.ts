@@ -86,9 +86,6 @@ export const addAddressEth = async (
   expect(didAccountData.ethAddresses[1].address).to.equal(
     newEthSigner.address.toLowerCase()
   );
-  expect(didAccountData.ethAddresses[1].signature).to.equal(
-    hexlify(newAddressFullSigBytes)
-  );
 
   expect(didAccountData.ethAddresses[1].role).to.deep.equal({
     admin: {},
@@ -138,9 +135,7 @@ export const addAddressEth = async (
   expect(didAccountDataSOL.solAddresses[0].address).to.equal(
     keypair.publicKey.toBase58()
   );
-  expect(didAccountDataSOL.solAddresses[0].signature).to.equal(
-    bs58.encode(newAddressSOLSignature)
-  );
+
   expect(didAccountDataSOL.solAddresses[0].role).to.deep.equal({
     admin: {},
   });
@@ -219,9 +214,7 @@ export const addAddressSol = async (
   expect(didAccountData.ethAddresses[0].address).to.equal(
     newEthSigner.address.toLowerCase()
   );
-  expect(didAccountData.ethAddresses[0].signature).to.equal(
-    hexlify(newAddressFullSigBytes)
-  );
+
   expect(didAccountData.ethAddresses[0].role).to.deep.equal({
     admin: {},
   });
@@ -271,9 +264,7 @@ export const addAddressSol = async (
   expect(didAccountDataSOL.solAddresses[1].address).to.equal(
     keypair.publicKey.toBase58()
   );
-  expect(didAccountDataSOL.solAddresses[1].signature).to.equal(
-    bs58.encode(newAddressSOLSignature)
-  );
+
   expect(didAccountDataSOL.solAddresses[1].role).to.deep.equal({
     admin: {},
   });

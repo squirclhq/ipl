@@ -35,7 +35,6 @@ impl Chain {
 pub struct Address {
     pub address: String,
     pub added_at: i64,
-    pub signature: String,
     pub chain: Chain,
     pub role: Role,
     // pub nonce: [u8; 32],
@@ -51,14 +50,12 @@ impl Address {
     pub fn new_eth(
         address: String,
         added_at: i64,
-        signature: String,
         role: Role,
         // nonce: [u8; 32],
     ) -> Self {
         Self {
             address,
             added_at,
-            signature,
             chain: Chain::EVM,
             role,
             // nonce,
@@ -68,14 +65,12 @@ impl Address {
     pub fn new_sol(
         address: String,
         added_at: i64,
-        signature: String,
         role: Role,
         // nonce: [u8; 32],
     ) -> Self {
         Self {
             address,
             added_at,
-            signature,
             chain: Chain::SOL,
             role,
             // nonce,

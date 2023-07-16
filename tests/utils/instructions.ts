@@ -15,6 +15,22 @@ export const createDIDEVM = async (
   actual_message: Buffer,
   payer: any
 ) => {
+  // console.log(didStr);
+  // console.log({
+  //   eth: {
+  //     ethSig: {
+  //       addressBase58: base58.encode(arrayify(ethSigner.address.toLowerCase())),
+  //       sigBase58: base58.encode(signature),
+  //       recoveryId: recoveryId,
+  //     },
+  //     index: 0,
+  //   },
+  // });
+
+  // console.log(didAccount);
+  // console.log(anchor.web3.SYSVAR_INSTRUCTIONS_PUBKEY);
+  // console.log(payer.publicKey);
+
   const sig = await program.methods
     .createDid(didStr, {
       eth: {
@@ -42,6 +58,28 @@ export const createDIDEVM = async (
       }),
     ])
     .rpc();
+
+  // console.log(
+  //   await program.methods
+  //     .createDid(didStr, {
+  //       eth: {
+  //         ethSig: {
+  //           addressBase58: base58.encode(
+  //             arrayify(ethSigner.address.toLowerCase())
+  //           ),
+  //           sigBase58: base58.encode(signature),
+  //           recoveryId: recoveryId,
+  //         },
+  //         index: 0,
+  //       },
+  //     })
+  //     .accounts({
+  //       did: didAccount,
+  //       ixSysvar: anchor.web3.SYSVAR_INSTRUCTIONS_PUBKEY,
+  //       payer: payer.publicKey,
+  //     })
+  //     .instruction()
+  // );
 
   return sig;
 };

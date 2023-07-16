@@ -59,9 +59,7 @@ export const createDIDEthereumTest = async (
   expect(didAccountData.ethAddresses[0].address).to.equal(
     ethSigner.address.toLowerCase()
   );
-  expect(didAccountData.ethAddresses[0].signature).to.equal(
-    hexlify(full_sig_bytes)
-  );
+
   expect(didAccountData.ethAddresses[0].role).to.deep.equal({
     controller: {},
   });
@@ -102,9 +100,7 @@ export const createDIDSolTest = async (
   expect(didAccountData.solAddresses[0].address).to.equal(
     keypair.publicKey.toBase58()
   );
-  expect(didAccountData.solAddresses[0].signature).to.equal(
-    bs58.encode(signature)
-  );
+
   expect(didAccountData.solAddresses[0].role).to.deep.equal({
     controller: {},
   });

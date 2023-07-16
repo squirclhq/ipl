@@ -25,17 +25,10 @@ pub fn create_did_ix(ctx: Context<CreateDID>, did_str: String, sig: Sig) -> Resu
 
             eth_sig.verify(&ix, new_did_message)?;
 
-            let sig_hex = eth_sig.get_sig_hex();
-
             did.set_inner(Did::new_eth(
                 did_str,
                 clock.clone(),
-                Address::new_eth(
-                    eth_address_hex,
-                    clock.unix_timestamp,
-                    sig_hex,
-                    Role::Controller,
-                ),
+                Address::new_eth(eth_address_hex, clock.unix_timestamp, Role::Controller),
             ));
         }
 
@@ -53,7 +46,6 @@ pub fn create_did_ix(ctx: Context<CreateDID>, did_str: String, sig: Sig) -> Resu
                 Address::new_sol(
                     sol_sig.address_base58,
                     clock.unix_timestamp,
-                    sol_sig.sig_base58,
                     Role::Controller,
                 ),
             ));

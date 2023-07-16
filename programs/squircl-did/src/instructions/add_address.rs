@@ -25,14 +25,12 @@ pub fn add_address_ix(
         Address::new_eth(
             eth_sig.get_eth_address_hex(),
             clock.unix_timestamp,
-            eth_sig.get_sig_hex(),
             Role::Admin,
         )
     } else if let Sig::Sol { sol_sig, index: _ } = &new_address_sig {
         Address::new_sol(
             sol_sig.address_base58.clone(),
             clock.unix_timestamp,
-            sol_sig.sig_base58.clone(),
             Role::Admin,
         )
     } else {
