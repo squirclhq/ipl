@@ -98,7 +98,7 @@ export const addAddressEth = async (
 
   const keypair = anchor.web3.Keypair.generate();
 
-  const newAddressMessageAsNewAddressSOL = `I am adding myself to the Squircl DID with the address ${keypair.publicKey.toBase58()}. Nonce; ${nonce}`;
+  const newAddressMessageAsNewAddressSOL = `I am adding myself to the Squircl DID with the address ${keypair.publicKey.toBase58()}. Nonce: ${nonce}`;
   const newAddressMessageAsControllerSOL = `I am adding ${keypair.publicKey.toBase58()} to the Squircl DID with the address ${ethSigner.address.toLocaleLowerCase()}. Nonce: ${nonce}`;
 
   const newMessageEncoded = Uint8Array.from(

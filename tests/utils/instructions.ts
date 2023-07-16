@@ -271,7 +271,6 @@ export const addAddressSOLWithEVMController = async (
   newMessageEncoded: Uint8Array,
   nonce: number
 ) => {
-  console.log("nonce", nonce);
   const sig = await program.methods
     .addAddress(
       didStr,
@@ -294,9 +293,9 @@ export const addAddressSOLWithEVMController = async (
             sigBase58: base58.encode(signature),
             recoveryId: recoveryId,
           },
+          index: 0,
+          nonce: new anchor.BN(nonce),
         },
-        index: 0,
-        nonce: new anchor.BN(nonce),
       }
     )
     .accounts({

@@ -55,8 +55,6 @@ pub fn add_address_ix(
             index,
             nonce,
         } => {
-            msg!("Index: {}", index);
-            msg!("Nonce: {}", nonce);
             require!(nonce > timestamp_1_hour_ago, SquirclErrorCode::NonceExpired);
 
             let controller_address_sign_ix =
