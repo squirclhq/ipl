@@ -9,7 +9,7 @@ pub mod utils;
 use instructions::*;
 use state::*;
 
-declare_id!("AF4ChbnZ2DfGTHdNxHkmdrZkvRBbHYq1WcmnLiFRxwkZ");
+declare_id!("EaZScR64cJVXacumi8M4bb72385F9cXWu6ToutedHBXU");
 
 #[program]
 pub mod squircl_did {

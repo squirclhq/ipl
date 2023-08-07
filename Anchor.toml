@@ -3,10 +3,10 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-squircl_did = "AF4ChbnZ2DfGTHdNxHkmdrZkvRBbHYq1WcmnLiFRxwkZ"
+squircl_did = "EaZScR64cJVXacumi8M4bb72385F9cXWu6ToutedHBXU"
 
 [programs.devnet]
-squircl_did = "AF4ChbnZ2DfGTHdNxHkmdrZkvRBbHYq1WcmnLiFRxwkZ"
+squircl_did = "EaZScR64cJVXacumi8M4bb72385F9cXWu6ToutedHBXU"
 
 [registry]
 url = "https://api.apr.dev"
